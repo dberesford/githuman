@@ -9,7 +9,7 @@ A local CLI tool that starts a server offering a web interface to review staged 
 | Runtime | Node.js 20+ | LTS, native TypeScript support via strip-types |
 | Language | TypeScript 5.x | Type safety, better maintainability |
 | Backend | Fastify 5.x | Fast, schema-based validation, OpenAPI support |
-| Database | SQLite (better-sqlite3) | Zero config, single file, portable |
+| Database | SQLite (node:sqlite) | Zero deps, native Node.js, synchronous API |
 | Frontend | React 18 + Vite | Modern tooling, fast HMR, easy embedding |
 | Styling | Tailwind CSS | Utility-first, minimal CSS maintenance |
 | Diff Engine | diff2html + diff | Battle-tested diff visualization |
@@ -49,6 +49,7 @@ local-code-reviewer/
 │   │   ├── plugins/
 │   │   │   ├── static.ts         # Serve embedded SPA
 │   │   │   ├── cors.ts           # CORS for development
+│   │   │   ├── auth.ts           # Optional token authentication
 │   │   │   └── swagger.ts        # OpenAPI documentation
 │   │   ├── routes/
 │   │   │   ├── reviews.ts        # Review CRUD endpoints
@@ -235,7 +236,13 @@ Options:
   -p, --port <number>    Port to run server on (default: 3847)
   --no-open              Don't auto-open browser
   -h, --host <string>    Host to bind to (default: localhost)
+  --auth <token>         Enable token authentication (optional)
 ```
+
+When `--auth` is provided:
+- All API endpoints require `Authorization: Bearer <token>` header
+- Web interface prompts for token on first visit (stored in localStorage)
+- Token can also be set via `CODE_REVIEW_TOKEN` environment variable
 
 ### `code-review list`
 
@@ -278,8 +285,8 @@ Options:
    - Configure CORS for development
 
 3. Implement SQLite database layer
-   - Set up better-sqlite3 connection
-   - Create schema and migration system
+   - Set up node:sqlite connection (DatabaseSync)
+   - Create version-based migration system using PRAGMA user_version
    - Implement repository pattern for data access
 
 4. Build CLI with Commander.js
@@ -458,6 +465,70 @@ SQLite database is stored at:
 - Gitignored by default
 - Portable with the repository if desired
 
+### 5. Migration System
+
+Version-based migrations using SQLite's `PRAGMA user_version`:
+
+```typescript
+interface Migration {
+  version: number;
+  name: string;
+  up: string;  // SQL to apply
+}
+
+function migrate(db: DatabaseSync, migrations: Migration[]): void {
+  const currentVersion = getCurrentVersion(db);  // PRAGMA user_version
+  const pending = migrations
+    .filter(m => m.version > currentVersion)
+    .sort((a, b) => a.version - b.version);
+
+  for (const migration of pending) {
+    db.exec('BEGIN TRANSACTION');
+    try {
+      db.exec(migration.up);
+      db.exec(`PRAGMA user_version = ${migration.version}`);
+      db.exec('COMMIT');
+    } catch (err) {
+      db.exec('ROLLBACK');
+      throw err;
+    }
+  }
+}
+```
+
+Benefits:
+- No external migration tool needed
+- Atomic migrations with transaction rollback
+- Version tracked in database itself
+- Simple, auditable migration files
+
+### 6. Optional Token Authentication
+
+When `--auth <token>` flag is provided:
+
+```typescript
+// Server-side: Fastify preHandler hook
+fastify.addHook('preHandler', async (request, reply) => {
+  if (!config.authToken) return;  // Auth disabled
+
+  const header = request.headers.authorization;
+  if (!header?.startsWith('Bearer ')) {
+    return reply.code(401).send({ error: 'Unauthorized' });
+  }
+
+  const token = header.slice(7);
+  if (token !== config.authToken) {
+    return reply.code(401).send({ error: 'Invalid token' });
+  }
+});
+```
+
+Client-side flow:
+1. Check `/api/health` for auth requirement
+2. If 401, prompt for token input
+3. Store token in localStorage
+4. Include `Authorization: Bearer <token>` in all requests
+
 ---
 
 ## Dependencies
@@ -471,7 +542,6 @@ SQLite database is stored at:
   "@fastify/cors": "^10.0.0",
   "@fastify/swagger": "^9.0.0",
   "@fastify/swagger-ui": "^5.0.0",
-  "better-sqlite3": "^11.0.0",
   "commander": "^12.0.0",
   "open": "^10.0.0",
   "simple-git": "^3.25.0",
@@ -514,7 +584,6 @@ SQLite database is stored at:
   "postcss": "^8.4.0",
   "@types/node": "^22.0.0",
   "@types/react": "^18.3.0",
-  "@types/better-sqlite3": "^7.6.0",
   "@types/diff": "^5.2.0"
 }
 ```

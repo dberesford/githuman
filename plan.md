@@ -6,7 +6,7 @@ A local CLI tool that starts a server offering a web interface to review staged 
 
 | Layer | Technology | Rationale |
 |-------|------------|-----------|
-| Runtime | Node.js 24+ | Native TypeScript (--experimental-strip-types), stable node:sqlite |
+| Runtime | Node.js 24+ | Native TypeScript support, stable node:sqlite |
 | Language | TypeScript 5.x | Type safety, better maintainability |
 | Backend | Fastify 5.x | Fast, schema-based validation, OpenAPI support |
 | Database | SQLite (node:sqlite) | Zero deps, native Node.js, synchronous API |
@@ -14,7 +14,7 @@ A local CLI tool that starts a server offering a web interface to review staged 
 | Styling | Tailwind CSS | Utility-first, minimal CSS maintenance |
 | Diff Engine | diff2html + diff | Battle-tested diff visualization |
 | Syntax Highlighting | Shiki | VSCode-quality highlighting, many themes |
-| CLI | Commander.js | Mature, well-documented CLI framework |
+| CLI | node:util parseArgs | Zero deps, native Node.js argument parsing |
 | Server Testing | node:test | Zero deps, native Node.js, fast |
 | Frontend Testing | Vitest + Testing Library | Fast, Vite-integrated, excellent DX |
 | E2E Testing | Playwright | Cross-browser, reliable, great debugging |
@@ -289,7 +289,7 @@ Options:
    - Create version-based migration system using PRAGMA user_version
    - Implement repository pattern for data access
 
-4. Build CLI with Commander.js
+4. Build CLI with node:util parseArgs
    - Implement `serve` command with port/host options
    - Add browser auto-open functionality
    - Implement `list` command (basic)
@@ -542,7 +542,6 @@ Client-side flow:
   "@fastify/cors": "^10.0.0",
   "@fastify/swagger": "^9.0.0",
   "@fastify/swagger-ui": "^5.0.0",
-  "commander": "^12.0.0",
   "open": "^10.0.0",
   "simple-git": "^3.25.0",
   "diff": "^5.2.0",
@@ -594,10 +593,10 @@ Client-side flow:
 {
   "scripts": {
     "dev": "vite",
-    "dev:server": "node --experimental-strip-types --watch src/cli/index.ts serve",
+    "dev:server": "node --watch src/cli/index.ts serve",
     "build": "vite build && tsc -p tsconfig.server.json",
     "test": "npm run test:server && npm run test:web",
-    "test:server": "node --experimental-strip-types --test tests/server/**/*.test.ts",
+    "test:server": "node --test tests/server/**/*.test.ts",
     "test:web": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

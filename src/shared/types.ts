@@ -1,0 +1,104 @@
+/**
+ * Shared types between server and web client
+ */
+
+export interface Review {
+  id: string;
+  title: string;
+  description: string | null;
+  repositoryPath: string;
+  baseRef: string | null;
+  snapshotData: string; // JSON serialized diff data
+  status: ReviewStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ReviewStatus = 'in_progress' | 'approved' | 'changes_requested';
+
+export interface Comment {
+  id: string;
+  reviewId: string;
+  filePath: string;
+  lineNumber: number | null; // null for file-level comments
+  lineType: 'added' | 'removed' | 'context' | null;
+  content: string;
+  suggestion: string | null;
+  resolved: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DiffFile {
+  oldPath: string;
+  newPath: string;
+  status: 'added' | 'modified' | 'deleted' | 'renamed';
+  additions: number;
+  deletions: number;
+  hunks: DiffHunk[];
+}
+
+export interface DiffHunk {
+  oldStart: number;
+  oldLines: number;
+  newStart: number;
+  newLines: number;
+  lines: DiffLine[];
+}
+
+export interface DiffLine {
+  type: 'added' | 'removed' | 'context';
+  content: string;
+  oldLineNumber: number | null;
+  newLineNumber: number | null;
+}
+
+export interface RepositoryInfo {
+  name: string;
+  branch: string;
+  remote: string | null;
+  path: string;
+}
+
+// API request/response types
+export interface CreateReviewRequest {
+  title: string;
+  description?: string;
+}
+
+export interface UpdateReviewRequest {
+  title?: string;
+  description?: string;
+  status?: ReviewStatus;
+}
+
+export interface CreateCommentRequest {
+  filePath: string;
+  lineNumber?: number;
+  lineType?: 'added' | 'removed' | 'context';
+  content: string;
+  suggestion?: string;
+}
+
+export interface UpdateCommentRequest {
+  content?: string;
+  suggestion?: string;
+}
+
+export interface ApiError {
+  error: string;
+  message: string;
+  statusCode: number;
+}
+
+export interface HealthResponse {
+  status: 'ok';
+  authRequired: boolean;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}

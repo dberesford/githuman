@@ -3,14 +3,21 @@
  */
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+import fastifyStatic from '@fastify/static';
+import { existsSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import authPlugin from './plugins/auth.ts';
 import diffRoutes from './routes/diff.ts';
 import reviewRoutes from './routes/reviews.ts';
 import type { ServerConfig } from './config.ts';
 import type { HealthResponse } from '../shared/types.ts';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
 export interface AppOptions {
   logger?: boolean;
+  serveStatic?: boolean;
 }
 
 export async function buildApp(
@@ -45,6 +52,26 @@ export async function buildApp(
   // Register routes
   await app.register(diffRoutes);
   await app.register(reviewRoutes);
+
+  // Serve static files if enabled and dist/web exists
+  if (options.serveStatic !== false) {
+    const staticPath = join(__dirname, '../../dist/web');
+    if (existsSync(staticPath)) {
+      await app.register(fastifyStatic, {
+        root: staticPath,
+        prefix: '/',
+        wildcard: false,
+      });
+
+      // SPA fallback - serve index.html for non-API routes
+      app.setNotFoundHandler(async (request, reply) => {
+        if (!request.url.startsWith('/api/')) {
+          return reply.sendFile('index.html');
+        }
+        return reply.code(404).send({ error: 'Not found' });
+      });
+    }
+  }
 
   return app;
 }

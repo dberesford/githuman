@@ -3,3 +3,5 @@ dist/
 .code-review/
 *.log
 .DS_Store
+playwright-report/
+test-results/

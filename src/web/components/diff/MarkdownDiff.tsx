@@ -3,6 +3,7 @@
  */
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { cn } from '../../lib/utils';
 import { DiffHunk } from './DiffHunk';
 import { diffApi, type FileContent } from '../../api/diff';
@@ -198,6 +199,7 @@ function PreviewContent({ content, loading, error }: PreviewContentProps) {
   return (
     <div className="p-4 sm:p-6 prose prose-sm max-w-none overflow-x-auto">
       <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
         components={{
           // Style code blocks
           pre: ({ children }) => (
@@ -236,38 +238,85 @@ function PreviewContent({ content, loading, error }: PreviewContentProps) {
           h3: ({ children }) => (
             <h3 className="text-lg font-semibold mt-4 mb-2">{children}</h3>
           ),
-          // Style lists
-          ul: ({ children }) => (
-            <ul className="list-disc list-inside my-2 space-y-1">{children}</ul>
+          h4: ({ children }) => (
+            <h4 className="text-base font-semibold mt-3 mb-2">{children}</h4>
           ),
-          ol: ({ children }) => (
-            <ol className="list-decimal list-inside my-2 space-y-1">{children}</ol>
+          // Style lists - use proper nesting with margin-left
+          ul: ({ children, depth }) => (
+            <ul className={cn(
+              'list-disc my-2 space-y-1',
+              depth === 0 ? 'ml-4' : 'ml-6 mt-1'
+            )}>
+              {children}
+            </ul>
           ),
+          ol: ({ children, depth }) => (
+            <ol className={cn(
+              'list-decimal my-2 space-y-1',
+              depth === 0 ? 'ml-4' : 'ml-6 mt-1'
+            )}>
+              {children}
+            </ol>
+          ),
+          li: ({ children, checked }) => {
+            // Task list item
+            if (checked !== null && checked !== undefined) {
+              return (
+                <li className="list-none flex items-start gap-2 -ml-4">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    readOnly
+                    className="mt-1 rounded border-gray-300"
+                  />
+                  <span>{children}</span>
+                </li>
+              );
+            }
+            return <li>{children}</li>;
+          },
           // Style blockquotes
           blockquote: ({ children }) => (
             <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-600 my-4">
               {children}
             </blockquote>
           ),
-          // Style tables
+          // Style tables - GitHub style
           table: ({ children }) => (
             <div className="overflow-x-auto my-4">
-              <table className="min-w-full border border-gray-300">{children}</table>
+              <table className="min-w-full border-collapse">{children}</table>
             </div>
           ),
-          th: ({ children }) => (
-            <th className="border border-gray-300 px-3 py-2 bg-gray-100 font-semibold text-left">
+          thead: ({ children }) => (
+            <thead className="bg-gray-50">{children}</thead>
+          ),
+          tr: ({ children }) => (
+            <tr className="border-t border-gray-300">{children}</tr>
+          ),
+          th: ({ children, style }) => (
+            <th
+              className="border border-gray-300 px-4 py-2 font-semibold text-left bg-gray-50"
+              style={style}
+            >
               {children}
             </th>
           ),
-          td: ({ children }) => (
-            <td className="border border-gray-300 px-3 py-2">{children}</td>
+          td: ({ children, style }) => (
+            <td className="border border-gray-300 px-4 py-2" style={style}>
+              {children}
+            </td>
           ),
           // Style paragraphs
-          p: ({ children }) => <p className="my-2">{children}</p>,
+          p: ({ children }) => <p className="my-2 leading-relaxed">{children}</p>,
           // Style images
           img: ({ src, alt }) => (
             <img src={src} alt={alt} className="max-w-full h-auto rounded-lg my-4" />
+          ),
+          // Style horizontal rules
+          hr: () => <hr className="my-6 border-t border-gray-300" />,
+          // Style strikethrough (GFM)
+          del: ({ children }) => (
+            <del className="text-gray-500 line-through">{children}</del>
           ),
         }}
       >

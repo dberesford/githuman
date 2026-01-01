@@ -39,7 +39,7 @@ export async function listCommand(args: string[]) {
   try {
     const db = initDatabase(config.dbPath);
 
-    let query = 'SELECT id, title, status, created_at, updated_at FROM reviews';
+    let query = 'SELECT id, source_type, source_ref, status, created_at, updated_at FROM reviews';
     const params: string[] = [];
 
     if (values.status) {
@@ -60,7 +60,8 @@ export async function listCommand(args: string[]) {
       console.log('Reviews:\n');
       for (const review of reviews as Array<{
         id: string;
-        title: string;
+        source_type: string;
+        source_ref: string | null;
         status: string;
         created_at: string;
       }>) {
@@ -70,7 +71,19 @@ export async function listCommand(args: string[]) {
             : review.status === 'changes_requested'
               ? '[!]'
               : '[ ]';
-        console.log(`${statusIcon} ${review.title}`);
+
+        // Build a display name based on source type
+        let displayName = review.source_type;
+        if (review.source_type === 'branch' && review.source_ref) {
+          displayName = `Branch: ${review.source_ref}`;
+        } else if (review.source_type === 'commits' && review.source_ref) {
+          const commits = review.source_ref.split(',');
+          displayName = `Commits: ${commits.length} commit${commits.length > 1 ? 's' : ''}`;
+        } else if (review.source_type === 'staged') {
+          displayName = 'Staged changes';
+        }
+
+        console.log(`${statusIcon} ${displayName}`);
         console.log(`    ID: ${review.id}`);
         console.log(`    Created: ${review.created_at}\n`);
       }

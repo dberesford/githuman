@@ -253,18 +253,26 @@ export class GitService {
    * Get diff for specific commits
    */
   async getCommitsDiff(commits: string[]): Promise<string> {
+    if (commits.length === 0) {
+      return '';
+    }
+
     if (commits.length === 1) {
       // Single commit - show that commit's diff
       const diff = await this.git.show([commits[0], '--format=']);
       return diff;
-    } else if (commits.length > 1) {
-      // Range of commits - show diff from first to last
-      const first = commits[0];
-      const last = commits[commits.length - 1];
-      const diff = await this.git.diff([`${first}^..${last}`]);
-      return diff;
     }
-    return '';
+
+    // Multiple commits - combine individual diffs
+    // This works regardless of commit order or whether they're contiguous
+    const diffs: string[] = [];
+    for (const commit of commits) {
+      const diff = await this.git.show([commit, '--format=']);
+      if (diff.trim()) {
+        diffs.push(diff);
+      }
+    }
+    return diffs.join('\n');
   }
 
   /**
@@ -302,16 +310,21 @@ export class GitService {
    * Get recent commits
    */
   async getCommits(limit: number = 20): Promise<CommitInfo[]> {
-    const log = await this.git.log([`-${limit}`, '--format=%H|%s|%an|%ai']);
+    // Use raw() to get properly formatted output since log() doesn't parse custom formats well
+    const rawLog = await this.git.raw(['log', `-${limit}`, '--format=%H|%s|%an|%ai']);
     const commits: CommitInfo[] = [];
 
-    for (const entry of log.all) {
-      commits.push({
-        sha: entry.hash,
-        message: entry.message,
-        author: entry.author_name,
-        date: entry.date,
-      });
+    const lines = rawLog.trim().split('\n').filter(line => line.length > 0);
+    for (const line of lines) {
+      const [sha, message, author, date] = line.split('|');
+      if (sha) {
+        commits.push({
+          sha,
+          message: message || '',
+          author: author || '',
+          date: date || '',
+        });
+      }
     }
 
     return commits;

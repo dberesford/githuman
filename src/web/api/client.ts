@@ -76,9 +76,15 @@ export const api = {
   },
 
   delete: async <T>(path: string): Promise<T> => {
+    // Don't set Content-Type for DELETE requests without body
+    const headers: HeadersInit = {};
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
     const response = await fetch(`${API_BASE}${path}`, {
       method: 'DELETE',
-      headers: getHeaders(),
+      headers,
     });
     return handleResponse<T>(response);
   },

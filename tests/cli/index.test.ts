@@ -1,11 +1,16 @@
-import { describe, it } from 'node:test';
+import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
 import { spawn } from 'node:child_process';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CLI_PATH = join(__dirname, '../../src/cli/index.ts');
+
+// Create a temp directory for tests that check for empty database
+let tempDir: string;
 
 interface ExecResult {
   stdout: string;
@@ -13,10 +18,11 @@ interface ExecResult {
   exitCode: number | null;
 }
 
-async function runCli(args: string[]): Promise<ExecResult> {
+async function runCli(args: string[], options?: { cwd?: string }): Promise<ExecResult> {
   return new Promise((resolve) => {
     const child = spawn('node', [CLI_PATH, ...args], {
       env: { ...process.env },
+      cwd: options?.cwd,
     });
 
     let stdout = '';
@@ -106,6 +112,17 @@ describe('CLI', () => {
   });
 
   describe('list command', () => {
+    before(() => {
+      // Create temp directory without any database
+      tempDir = mkdtempSync(join(tmpdir(), 'cli-test-'));
+    });
+
+    after(() => {
+      if (tempDir) {
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    });
+
     it('should show help with --help flag', async () => {
       const result = await runCli(['list', '--help']);
 
@@ -123,7 +140,8 @@ describe('CLI', () => {
     });
 
     it('should show no reviews message when database does not exist', async () => {
-      const result = await runCli(['list']);
+      // Run from temp directory which has no database
+      const result = await runCli(['list'], { cwd: tempDir });
 
       assert.strictEqual(result.exitCode, 0);
       assert.ok(
@@ -132,7 +150,8 @@ describe('CLI', () => {
     });
 
     it('should output empty array with --json when no reviews', async () => {
-      const result = await runCli(['list', '--json']);
+      // Run from temp directory which has no database
+      const result = await runCli(['list', '--json'], { cwd: tempDir });
 
       assert.strictEqual(result.exitCode, 0);
       // Either empty array or "No reviews found" message

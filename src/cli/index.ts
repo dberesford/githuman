@@ -2,10 +2,22 @@
 /**
  * Local Code Reviewer CLI
  */
-import { parseArgs } from 'node:util';
-import { serveCommand } from './commands/serve.ts';
-import { listCommand } from './commands/list.ts';
-import { exportCommand } from './commands/export.ts';
+
+// Suppress SQLite experimental warning
+// Must be done before any imports that might load sqlite
+const originalEmitWarning = process.emitWarning;
+process.emitWarning = (warning, ...args) => {
+  if (typeof warning === 'string' && warning.includes('SQLite')) {
+    return;
+  }
+  if (warning instanceof Error && warning.message.includes('SQLite')) {
+    return;
+  }
+  return originalEmitWarning.call(process, warning, ...args);
+};
+
+// Use dynamic imports so warning suppression is in place first
+const { parseArgs } = await import('node:util');
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -52,15 +64,21 @@ if (!command) {
 }
 
 switch (command) {
-  case 'serve':
+  case 'serve': {
+    const { serveCommand } = await import('./commands/serve.ts');
     await serveCommand(process.argv.slice(3));
     break;
-  case 'list':
+  }
+  case 'list': {
+    const { listCommand } = await import('./commands/list.ts');
     await listCommand(process.argv.slice(3));
     break;
-  case 'export':
+  }
+  case 'export': {
+    const { exportCommand } = await import('./commands/export.ts');
     await exportCommand(process.argv.slice(3));
     break;
+  }
   default:
     console.error(`Unknown command: ${command}`);
     printHelp();

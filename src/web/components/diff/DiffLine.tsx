@@ -69,7 +69,7 @@ export function DiffLine({ line, filePath, showLineNumbers = true, allowComments
     <div>
       <div
         className={cn(
-          'flex font-mono text-sm group relative',
+          'flex font-mono text-sm group relative min-w-max',
           bgClass,
           isClickable && !isAddingComment && 'cursor-pointer hover:bg-blue-50/50'
         )}

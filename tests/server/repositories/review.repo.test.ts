@@ -17,37 +17,53 @@ describe('ReviewRepository', () => {
     it('should create a review and return it', () => {
       const review = repo.create({
         id: 'test-id-1',
-        title: 'Test Review',
-        description: 'A test review',
         repositoryPath: '/test/repo',
         baseRef: 'abc123',
+        sourceType: 'staged',
+        sourceRef: null,
         snapshotData: '{"files":[]}',
         status: 'in_progress',
       });
 
       assert.strictEqual(review.id, 'test-id-1');
-      assert.strictEqual(review.title, 'Test Review');
-      assert.strictEqual(review.description, 'A test review');
       assert.strictEqual(review.repositoryPath, '/test/repo');
       assert.strictEqual(review.baseRef, 'abc123');
+      assert.strictEqual(review.sourceType, 'staged');
+      assert.strictEqual(review.sourceRef, null);
       assert.strictEqual(review.snapshotData, '{"files":[]}');
       assert.strictEqual(review.status, 'in_progress');
       assert.ok(review.createdAt);
       assert.ok(review.updatedAt);
     });
 
-    it('should create a review with null description', () => {
+    it('should create a review from branch comparison', () => {
       const review = repo.create({
         id: 'test-id-2',
-        title: 'No Description',
-        description: null,
         repositoryPath: '/test/repo',
-        baseRef: null,
+        baseRef: 'abc123',
+        sourceType: 'branch',
+        sourceRef: 'main',
         snapshotData: '{}',
         status: 'in_progress',
       });
 
-      assert.strictEqual(review.description, null);
+      assert.strictEqual(review.sourceType, 'branch');
+      assert.strictEqual(review.sourceRef, 'main');
+    });
+
+    it('should create a review from commits', () => {
+      const review = repo.create({
+        id: 'test-id-3',
+        repositoryPath: '/test/repo',
+        baseRef: null,
+        sourceType: 'commits',
+        sourceRef: 'abc123,def456',
+        snapshotData: '{}',
+        status: 'in_progress',
+      });
+
+      assert.strictEqual(review.sourceType, 'commits');
+      assert.strictEqual(review.sourceRef, 'abc123,def456');
       assert.strictEqual(review.baseRef, null);
     });
   });
@@ -56,10 +72,10 @@ describe('ReviewRepository', () => {
     it('should return a review by id', () => {
       repo.create({
         id: 'test-id',
-        title: 'Test',
-        description: null,
         repositoryPath: '/test/repo',
         baseRef: null,
+        sourceType: 'staged',
+        sourceRef: null,
         snapshotData: '{}',
         status: 'in_progress',
       });
@@ -67,7 +83,7 @@ describe('ReviewRepository', () => {
       const review = repo.findById('test-id');
       assert.ok(review);
       assert.strictEqual(review.id, 'test-id');
-      assert.strictEqual(review.title, 'Test');
+      assert.strictEqual(review.sourceType, 'staged');
     });
 
     it('should return null for non-existent id', () => {
@@ -86,19 +102,19 @@ describe('ReviewRepository', () => {
     it('should return all reviews', () => {
       repo.create({
         id: 'id-1',
-        title: 'Review 1',
-        description: null,
         repositoryPath: '/test/repo',
         baseRef: null,
+        sourceType: 'staged',
+        sourceRef: null,
         snapshotData: '{}',
         status: 'in_progress',
       });
       repo.create({
         id: 'id-2',
-        title: 'Review 2',
-        description: null,
         repositoryPath: '/test/repo',
         baseRef: null,
+        sourceType: 'staged',
+        sourceRef: null,
         snapshotData: '{}',
         status: 'approved',
       });
@@ -111,19 +127,19 @@ describe('ReviewRepository', () => {
     it('should filter by status', () => {
       repo.create({
         id: 'id-1',
-        title: 'Review 1',
-        description: null,
         repositoryPath: '/test/repo',
         baseRef: null,
+        sourceType: 'staged',
+        sourceRef: null,
         snapshotData: '{}',
         status: 'in_progress',
       });
       repo.create({
         id: 'id-2',
-        title: 'Review 2',
-        description: null,
         repositoryPath: '/test/repo',
         baseRef: null,
+        sourceType: 'staged',
+        sourceRef: null,
         snapshotData: '{}',
         status: 'approved',
       });
@@ -137,19 +153,19 @@ describe('ReviewRepository', () => {
     it('should filter by repository path', () => {
       repo.create({
         id: 'id-1',
-        title: 'Review 1',
-        description: null,
         repositoryPath: '/repo/one',
         baseRef: null,
+        sourceType: 'staged',
+        sourceRef: null,
         snapshotData: '{}',
         status: 'in_progress',
       });
       repo.create({
         id: 'id-2',
-        title: 'Review 2',
-        description: null,
         repositoryPath: '/repo/two',
         baseRef: null,
+        sourceType: 'staged',
+        sourceRef: null,
         snapshotData: '{}',
         status: 'in_progress',
       });
@@ -159,14 +175,39 @@ describe('ReviewRepository', () => {
       assert.strictEqual(result.data[0].repositoryPath, '/repo/one');
     });
 
+    it('should filter by source type', () => {
+      repo.create({
+        id: 'id-1',
+        repositoryPath: '/test/repo',
+        baseRef: null,
+        sourceType: 'staged',
+        sourceRef: null,
+        snapshotData: '{}',
+        status: 'in_progress',
+      });
+      repo.create({
+        id: 'id-2',
+        repositoryPath: '/test/repo',
+        baseRef: null,
+        sourceType: 'branch',
+        sourceRef: 'main',
+        snapshotData: '{}',
+        status: 'in_progress',
+      });
+
+      const result = repo.findAll({ sourceType: 'branch' });
+      assert.strictEqual(result.data.length, 1);
+      assert.strictEqual(result.data[0].sourceType, 'branch');
+    });
+
     it('should paginate results', () => {
       for (let i = 1; i <= 5; i++) {
         repo.create({
           id: `id-${i}`,
-          title: `Review ${i}`,
-          description: null,
           repositoryPath: '/test/repo',
           baseRef: null,
+          sourceType: 'staged',
+          sourceRef: null,
           snapshotData: '{}',
           status: 'in_progress',
         });
@@ -187,29 +228,13 @@ describe('ReviewRepository', () => {
   });
 
   describe('update', () => {
-    it('should update review title', () => {
-      repo.create({
-        id: 'test-id',
-        title: 'Original Title',
-        description: null,
-        repositoryPath: '/test/repo',
-        baseRef: null,
-        snapshotData: '{}',
-        status: 'in_progress',
-      });
-
-      const updated = repo.update('test-id', { title: 'New Title' });
-      assert.ok(updated);
-      assert.strictEqual(updated.title, 'New Title');
-    });
-
     it('should update review status', () => {
       repo.create({
         id: 'test-id',
-        title: 'Test',
-        description: null,
         repositoryPath: '/test/repo',
         baseRef: null,
+        sourceType: 'staged',
+        sourceRef: null,
         snapshotData: '{}',
         status: 'in_progress',
       });
@@ -219,31 +244,24 @@ describe('ReviewRepository', () => {
       assert.strictEqual(updated.status, 'approved');
     });
 
-    it('should update multiple fields', () => {
+    it('should update to changes_requested status', () => {
       repo.create({
         id: 'test-id',
-        title: 'Test',
-        description: null,
         repositoryPath: '/test/repo',
         baseRef: null,
+        sourceType: 'staged',
+        sourceRef: null,
         snapshotData: '{}',
         status: 'in_progress',
       });
 
-      const updated = repo.update('test-id', {
-        title: 'Updated',
-        description: 'New description',
-        status: 'changes_requested',
-      });
-
+      const updated = repo.update('test-id', { status: 'changes_requested' });
       assert.ok(updated);
-      assert.strictEqual(updated.title, 'Updated');
-      assert.strictEqual(updated.description, 'New description');
       assert.strictEqual(updated.status, 'changes_requested');
     });
 
     it('should return null for non-existent id', () => {
-      const updated = repo.update('non-existent', { title: 'Test' });
+      const updated = repo.update('non-existent', { status: 'approved' });
       assert.strictEqual(updated, null);
     });
   });
@@ -252,10 +270,10 @@ describe('ReviewRepository', () => {
     it('should delete a review', () => {
       repo.create({
         id: 'test-id',
-        title: 'Test',
-        description: null,
         repositoryPath: '/test/repo',
         baseRef: null,
+        sourceType: 'staged',
+        sourceRef: null,
         snapshotData: '{}',
         status: 'in_progress',
       });
@@ -277,28 +295,28 @@ describe('ReviewRepository', () => {
     it('should count reviews by status', () => {
       repo.create({
         id: 'id-1',
-        title: 'Review 1',
-        description: null,
         repositoryPath: '/test/repo',
         baseRef: null,
+        sourceType: 'staged',
+        sourceRef: null,
         snapshotData: '{}',
         status: 'in_progress',
       });
       repo.create({
         id: 'id-2',
-        title: 'Review 2',
-        description: null,
         repositoryPath: '/test/repo',
         baseRef: null,
+        sourceType: 'staged',
+        sourceRef: null,
         snapshotData: '{}',
         status: 'in_progress',
       });
       repo.create({
         id: 'id-3',
-        title: 'Review 3',
-        description: null,
         repositoryPath: '/test/repo',
         baseRef: null,
+        sourceType: 'staged',
+        sourceRef: null,
         snapshotData: '{}',
         status: 'approved',
       });
@@ -315,10 +333,10 @@ describe('ReviewRepository', () => {
 
       repo.create({
         id: 'id-1',
-        title: 'Test',
-        description: null,
         repositoryPath: '/test/repo',
         baseRef: null,
+        sourceType: 'staged',
+        sourceRef: null,
         snapshotData: '{}',
         status: 'in_progress',
       });

@@ -52,6 +52,40 @@ export const migrations: Migration[] = [
       CREATE INDEX idx_comments_file ON comments(review_id, file_path);
     `,
   },
+  {
+    version: 3,
+    name: 'streamline_reviews_schema',
+    up: `
+      -- SQLite doesn't support DROP COLUMN, so recreate the table
+      -- Remove title and description, add source_type and source_ref
+
+      CREATE TABLE reviews_new (
+        id TEXT PRIMARY KEY,
+        repository_path TEXT NOT NULL,
+        base_ref TEXT,
+        source_type TEXT DEFAULT 'staged',
+        source_ref TEXT,
+        snapshot_data TEXT NOT NULL,
+        status TEXT DEFAULT 'in_progress',
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+      ) STRICT;
+
+      -- Copy existing data (title and description are dropped)
+      INSERT INTO reviews_new (id, repository_path, base_ref, source_type, source_ref, snapshot_data, status, created_at, updated_at)
+      SELECT id, repository_path, base_ref, 'staged', NULL, snapshot_data, status, created_at, updated_at
+      FROM reviews;
+
+      -- Drop old table and rename new one
+      DROP TABLE reviews;
+      ALTER TABLE reviews_new RENAME TO reviews;
+
+      -- Recreate indexes
+      CREATE INDEX idx_reviews_status ON reviews(status);
+      CREATE INDEX idx_reviews_created ON reviews(created_at DESC);
+      CREATE INDEX idx_reviews_source_type ON reviews(source_type);
+    `,
+  },
 ];
 
 function getCurrentVersion(db: DatabaseSync): number {

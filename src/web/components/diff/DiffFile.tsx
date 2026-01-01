@@ -9,7 +9,9 @@ import type { DiffFile as DiffFileType } from '../../../shared/types';
 interface DiffFileProps {
   file: DiffFileType;
   defaultExpanded?: boolean;
+  forceExpanded?: boolean;
   allowComments?: boolean;
+  onLineClick?: (filePath: string, lineNumber: number, lineType: 'added' | 'removed' | 'context') => void;
 }
 
 function getStatusBadge(status: DiffFileType['status']) {
@@ -34,8 +36,11 @@ function getStatusBadge(status: DiffFileType['status']) {
   );
 }
 
-export function DiffFile({ file, defaultExpanded = true, allowComments = false }: DiffFileProps) {
+export function DiffFile({ file, defaultExpanded = true, forceExpanded, allowComments = false, onLineClick }: DiffFileProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+
+  // If forceExpanded is true, ensure the file is expanded
+  const isExpanded = forceExpanded || expanded;
   const [viewMode, setViewMode] = useState<'diff' | 'full'>('diff');
 
   const displayPath = file.status === 'renamed'
@@ -61,7 +66,7 @@ export function DiffFile({ file, defaultExpanded = true, allowComments = false }
           className="flex-1 px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3 hover:bg-gray-100 text-left"
         >
           <svg
-            className={cn('w-4 h-4 text-gray-500 transition-transform shrink-0', expanded && 'rotate-90')}
+            className={cn('w-4 h-4 text-gray-500 transition-transform shrink-0', isExpanded && 'rotate-90')}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -81,7 +86,7 @@ export function DiffFile({ file, defaultExpanded = true, allowComments = false }
         </button>
 
         {/* View mode toggle */}
-        {expanded && canShowFullFile && file.hunks.length > 0 && (
+        {isExpanded && canShowFullFile && file.hunks.length > 0 && (
           <div className="flex items-center border-l border-gray-200 px-2">
             <button
               onClick={() => setViewMode('diff')}
@@ -111,7 +116,7 @@ export function DiffFile({ file, defaultExpanded = true, allowComments = false }
         )}
       </div>
 
-      {expanded && (
+      {isExpanded && (
         <div className="overflow-x-auto">
           {isImage ? (
             <ImageDiff file={file} />
@@ -126,6 +131,7 @@ export function DiffFile({ file, defaultExpanded = true, allowComments = false }
               filePath={filePath}
               hunks={file.hunks}
               allowComments={allowComments}
+              onLineClick={onLineClick}
             />
           ) : (
             file.hunks.map((hunk, index) => (
@@ -134,6 +140,7 @@ export function DiffFile({ file, defaultExpanded = true, allowComments = false }
                 hunk={hunk}
                 filePath={filePath}
                 allowComments={allowComments}
+                onLineClick={onLineClick}
               />
             ))
           )}

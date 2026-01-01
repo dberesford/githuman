@@ -1,37 +1,77 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
 import { DiffView } from '../components/diff/DiffView';
+import { CommentProvider, useCommentContext, getLineKey } from '../contexts/CommentContext';
 import { useStagedDiff } from '../hooks/useStagedDiff';
 import { useCreateReview } from '../hooks/useReviews';
+
+// Component to set active comment line after review is created
+function PendingLineActivator({ pendingLine, onActivated }: {
+  pendingLine: { filePath: string; lineNumber: number; lineType: 'added' | 'removed' | 'context' } | null;
+  onActivated: () => void;
+}) {
+  const { setActiveCommentLine, reviewId } = useCommentContext();
+
+  useEffect(() => {
+    // Only activate when we have both a reviewId and a pending line
+    if (reviewId && pendingLine) {
+      const lineKey = getLineKey(pendingLine.filePath, pendingLine.lineNumber, pendingLine.lineType);
+      setActiveCommentLine(lineKey);
+      onActivated();
+
+      // Scroll to the file
+      setTimeout(() => {
+        document.getElementById(pendingLine.filePath)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [reviewId, pendingLine, setActiveCommentLine, onActivated]);
+
+  return null;
+}
 
 export function StagedChangesPage() {
   const navigate = useNavigate();
   const { data, loading, error, refetch } = useStagedDiff();
   const { create, loading: creating } = useCreateReview();
   const [selectedFile, setSelectedFile] = useState<string | undefined>();
-  const [showModal, setShowModal] = useState(false);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
+  const [reviewId, setReviewId] = useState<string | null>(null);
+  const [pendingLine, setPendingLine] = useState<{
+    filePath: string;
+    lineNumber: number;
+    lineType: 'added' | 'removed' | 'context';
+  } | null>(null);
 
   const handleCreateReview = async () => {
-    if (!title.trim()) {
-      setCreateError('Title is required');
-      return;
-    }
-
     try {
-      const review = await create({
-        title: title.trim(),
-        description: description.trim() || undefined,
-      });
-      setShowModal(false);
+      setCreateError(null);
+      const review = await create({ sourceType: 'staged' });
       navigate(`/reviews/${review.id}`);
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Failed to create review');
     }
   };
+
+  const handleLineClick = async (filePath: string, lineNumber: number, lineType: 'added' | 'removed' | 'context') => {
+    // If we already have a review, don't create another one
+    if (reviewId) return;
+
+    try {
+      setCreateError(null);
+      // Store the pending line to activate after review is created
+      setPendingLine({ filePath, lineNumber, lineType });
+      const review = await create({ sourceType: 'staged' });
+      setReviewId(review.id);
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Failed to create review');
+      setPendingLine(null);
+    }
+  };
+
+  const handlePendingLineActivated = useCallback(() => {
+    setPendingLine(null);
+  }, []);
 
   if (loading) {
     return (
@@ -65,7 +105,8 @@ export function StagedChangesPage() {
   const hasChanges = data && data.files.length > 0;
 
   return (
-    <>
+    <CommentProvider reviewId={reviewId}>
+      <PendingLineActivator pendingLine={pendingLine} onActivated={handlePendingLineActivated} />
       <div className="flex-1 flex min-w-0">
         {data && (
           <>
@@ -77,93 +118,55 @@ export function StagedChangesPage() {
             <div className="flex-1 flex flex-col min-w-0">
               {hasChanges && (
                 <div className="p-3 sm:p-4 border-b border-gray-200 bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="text-xs sm:text-sm text-gray-600">
-                    Review your staged changes before creating a review
+                  <div>
+                    <div className="text-xs sm:text-sm text-gray-600">
+                      {reviewId
+                        ? 'Click on any line to add comments'
+                        : 'Click on a line to start a review, or use the button'}
+                    </div>
+                    {createError && (
+                      <div className="mt-2 text-xs sm:text-sm text-red-600">
+                        {createError}
+                      </div>
+                    )}
                   </div>
-                  <button
-                    onClick={() => setShowModal(true)}
-                    className="inline-flex items-center px-3 sm:px-4 py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 shrink-0"
-                  >
-                    <svg className="w-4 h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span className="hidden sm:inline">Create Review</span>
-                    <span className="sm:hidden">Create</span>
-                  </button>
+                  {reviewId ? (
+                    <button
+                      onClick={() => navigate(`/reviews/${reviewId}`)}
+                      className="inline-flex items-center px-3 sm:px-4 py-2 bg-green-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-green-700 shrink-0"
+                    >
+                      <svg className="w-4 h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="hidden sm:inline">Go to Review</span>
+                      <span className="sm:hidden">Review</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleCreateReview}
+                      disabled={creating}
+                      className="inline-flex items-center px-3 sm:px-4 py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 shrink-0"
+                    >
+                      <svg className="w-4 h-4 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span className="hidden sm:inline">{creating ? 'Creating...' : 'Create Review'}</span>
+                      <span className="sm:hidden">{creating ? '...' : 'Create'}</span>
+                    </button>
+                  )}
                 </div>
               )}
               <DiffView
                 files={data.files}
                 summary={data.summary}
                 selectedFile={selectedFile}
+                allowComments={!!reviewId}
+                onLineClick={reviewId ? undefined : handleLineClick}
               />
             </div>
           </>
         )}
       </div>
-
-      {/* Create Review Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
-            <div className="p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold">Create Review</h2>
-            </div>
-            <div className="p-4 space-y-4">
-              {createError && (
-                <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">
-                  {createError}
-                </div>
-              )}
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                  Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter review title"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Optional description"
-                />
-              </div>
-            </div>
-            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowModal(false);
-                  setCreateError(null);
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreateReview}
-                disabled={creating}
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
-              >
-                {creating ? 'Creating...' : 'Create Review'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    </CommentProvider>
   );
 }

@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useReviewsList } from '../hooks/useReviews';
+import { reviewsApi } from '../api/reviews';
 import { cn } from '../lib/utils';
-import type { ReviewStatus } from '../../shared/types';
+import type { ReviewStatus, ReviewSourceType } from '../../shared/types';
 
 function getStatusBadge(status: ReviewStatus) {
   const styles = {
@@ -23,6 +25,23 @@ function getStatusBadge(status: ReviewStatus) {
   );
 }
 
+function getSourceLabel(sourceType: ReviewSourceType, sourceRef: string | null) {
+  if (sourceType === 'staged') {
+    return 'Staged changes';
+  }
+  if (sourceType === 'branch' && sourceRef) {
+    return `Branch: ${sourceRef}`;
+  }
+  if (sourceType === 'commits' && sourceRef) {
+    const commits = sourceRef.split(',');
+    if (commits.length === 1) {
+      return `Commit: ${commits[0].slice(0, 8)}`;
+    }
+    return `${commits.length} commits`;
+  }
+  return 'Unknown';
+}
+
 function formatDate(dateString: string) {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {
@@ -35,7 +54,29 @@ function formatDate(dateString: string) {
 }
 
 export function HomePage() {
-  const { data, loading, error } = useReviewsList();
+  const { data, loading, error, refetch } = useReviewsList();
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      await reviewsApi.delete(deleteId);
+      setDeleteId(null);
+      refetch();
+    } catch (err) {
+      console.error('Failed to delete review:', err);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="flex-1 p-6">
@@ -43,7 +84,7 @@ export function HomePage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Reviews</h1>
           <Link
-            to="/staged"
+            to="/new"
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,13 +124,13 @@ export function HomePage() {
             </svg>
             <p className="text-lg font-medium text-gray-700">No reviews yet</p>
             <p className="text-gray-500 mt-1">
-              Stage some changes and create a new review to get started.
+              Create a new review from staged changes, branches, or commits.
             </p>
             <Link
-              to="/staged"
+              to="/new"
               className="inline-flex items-center mt-4 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
             >
-              View Staged Changes
+              Create New Review
             </Link>
           </div>
         )}
@@ -104,14 +145,12 @@ export function HomePage() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <h2 className="text-lg font-medium text-gray-900 truncate">
-                      {review.title}
-                    </h2>
-                    {review.description && (
-                      <p className="mt-1 text-sm text-gray-500 truncate">
-                        {review.description}
-                      </p>
-                    )}
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-gray-700 bg-gray-100 px-2 py-0.5 rounded">
+                        {getSourceLabel(review.sourceType, review.sourceRef)}
+                      </span>
+                      {getStatusBadge(review.status)}
+                    </div>
                     <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
                       <span>
                         {review.summary.totalFiles} files
@@ -121,9 +160,15 @@ export function HomePage() {
                       <span>{formatDate(review.createdAt)}</span>
                     </div>
                   </div>
-                  <div className="ml-4">
-                    {getStatusBadge(review.status)}
-                  </div>
+                  <button
+                    onClick={(e) => handleDelete(review.id, e)}
+                    className="ml-4 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                    title="Delete review"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
                 </div>
               </Link>
             ))}
@@ -136,6 +181,35 @@ export function HomePage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4">
+            <div className="p-4">
+              <h2 className="text-lg font-semibold text-gray-900">Delete Review</h2>
+              <p className="mt-2 text-sm text-gray-500">
+                Are you sure you want to delete this review? This action cannot be undone.
+              </p>
+            </div>
+            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteId(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

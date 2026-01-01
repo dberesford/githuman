@@ -1,7 +1,7 @@
 /**
  * Comment Context - provides comment state and actions to diff components
  */
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import { commentsApi } from '../api/comments';
 import type { Comment, CreateCommentRequest } from '../../shared/types';
 
@@ -31,7 +31,7 @@ export function useCommentContext() {
 }
 
 interface CommentProviderProps {
-  reviewId: string;
+  reviewId: string | null;
   children: ReactNode;
 }
 
@@ -41,7 +41,7 @@ function getLineKey(filePath: string, lineNumber: number | null, lineType: strin
 
 export function CommentProvider({ reviewId, children }: CommentProviderProps) {
   const [comments, setComments] = useState<Comment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!reviewId);
   const [activeCommentLine, setActiveCommentLine] = useState<string | null>(null);
 
   const refetch = useCallback(async () => {
@@ -57,10 +57,12 @@ export function CommentProvider({ reviewId, children }: CommentProviderProps) {
     }
   }, [reviewId]);
 
-  // Initial fetch
-  useState(() => {
-    refetch();
-  });
+  // Fetch when reviewId changes
+  useEffect(() => {
+    if (reviewId) {
+      refetch();
+    }
+  }, [reviewId, refetch]);
 
   // Group comments by line
   const commentsByLine = new Map<string, Comment[]>();
@@ -71,6 +73,7 @@ export function CommentProvider({ reviewId, children }: CommentProviderProps) {
   }
 
   const addComment = async (data: CreateCommentRequest) => {
+    if (!reviewId) throw new Error('Cannot add comment without a review');
     const comment = await commentsApi.create(reviewId, data);
     setComments((prev) => [...prev, comment]);
     setActiveCommentLine(null);

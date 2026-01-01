@@ -5,7 +5,24 @@ import type { DatabaseSync } from 'node:sqlite';
 import { ReviewRepository } from '../repositories/review.repo.ts';
 import { CommentRepository } from '../repositories/comment.repo.ts';
 import { getDiffSummary } from './diff.service.ts';
-import type { DiffFile, DiffLine, Comment, RepositoryInfo } from '../../shared/types.ts';
+import type { DiffFile, DiffLine, Comment, RepositoryInfo, ReviewSourceType } from '../../shared/types.ts';
+
+function getSourceLabel(sourceType: ReviewSourceType, sourceRef: string | null): string {
+  if (sourceType === 'staged') {
+    return 'Staged changes';
+  }
+  if (sourceType === 'branch' && sourceRef) {
+    return `Branch: ${sourceRef}`;
+  }
+  if (sourceType === 'commits' && sourceRef) {
+    const commits = sourceRef.split(',');
+    if (commits.length === 1) {
+      return `Commit: ${commits[0].slice(0, 8)}`;
+    }
+    return `${commits.length} commits`;
+  }
+  return 'Unknown';
+}
 
 export interface ExportOptions {
   includeResolved?: boolean;
@@ -47,7 +64,8 @@ export class ExportService {
     const lines: string[] = [];
 
     // Header
-    lines.push(`# Code Review: ${review.title}`);
+    const sourceLabel = getSourceLabel(review.sourceType, review.sourceRef);
+    lines.push(`# Code Review: ${sourceLabel}`);
     lines.push('');
 
     // Metadata
@@ -57,19 +75,13 @@ export class ExportService {
     lines.push(`|-------|-------|`);
     lines.push(`| Repository | ${snapshot.repository.name} |`);
     lines.push(`| Branch | ${snapshot.repository.branch} |`);
+    lines.push(`| Source | ${sourceLabel} |`);
     lines.push(`| Status | ${formatStatus(review.status)} |`);
     lines.push(`| Created | ${formatDate(review.createdAt)} |`);
     if (review.baseRef) {
       lines.push(`| Base Commit | \`${review.baseRef.slice(0, 8)}\` |`);
     }
     lines.push('');
-
-    if (review.description) {
-      lines.push('### Description');
-      lines.push('');
-      lines.push(review.description);
-      lines.push('');
-    }
 
     // Summary
     lines.push('## Changes Summary');

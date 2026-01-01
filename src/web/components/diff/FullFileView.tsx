@@ -10,6 +10,7 @@ interface FullFileViewProps {
   filePath: string;
   hunks: DiffHunk[];
   allowComments?: boolean;
+  onLineClick?: (filePath: string, lineNumber: number, lineType: 'added' | 'removed' | 'context') => void;
 }
 
 interface ChangedLineInfo {
@@ -17,7 +18,7 @@ interface ChangedLineInfo {
   hunkIndex: number;
 }
 
-export function FullFileView({ filePath, hunks, allowComments = false }: FullFileViewProps) {
+export function FullFileView({ filePath, hunks, allowComments = false, onLineClick }: FullFileViewProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<FileContent | null>(null);
@@ -83,6 +84,7 @@ export function FullFileView({ filePath, hunks, allowComments = false }: FullFil
             changeType={changeInfo?.type}
             filePath={filePath}
             allowComments={allowComments}
+            onLineClick={onLineClick}
           />
         );
       })}
@@ -96,9 +98,10 @@ interface FullFileLineProps {
   changeType?: 'added' | 'removed' | 'context';
   filePath: string;
   allowComments?: boolean;
+  onLineClick?: (filePath: string, lineNumber: number, lineType: 'added' | 'removed' | 'context') => void;
 }
 
-function FullFileLine({ lineNumber, content, changeType, filePath, allowComments = false }: FullFileLineProps) {
+function FullFileLine({ lineNumber, content, changeType, filePath, allowComments = false, onLineClick }: FullFileLineProps) {
   const commentContext = allowComments ? useCommentContext() : null;
 
   const lineType = changeType || 'context';
@@ -118,7 +121,15 @@ function FullFileLine({ lineNumber, content, changeType, filePath, allowComments
     context: 'text-gray-800',
   }[lineType];
 
+  const isClickable = allowComments || onLineClick;
+
   const handleLineClick = () => {
+    // If there's an onLineClick callback (e.g., to create a review first), call it
+    if (onLineClick) {
+      onLineClick(filePath, lineNumber, lineType);
+      return;
+    }
+    // Otherwise, use the normal comment context flow
     if (!allowComments || isAddingComment) return;
     commentContext?.setActiveCommentLine(lineKey);
   };
@@ -143,12 +154,12 @@ function FullFileLine({ lineNumber, content, changeType, filePath, allowComments
         className={cn(
           'flex font-mono text-sm group relative',
           bgClass,
-          allowComments && !isAddingComment && 'cursor-pointer hover:bg-blue-50/50'
+          isClickable && !isAddingComment && 'cursor-pointer hover:bg-blue-50/50'
         )}
         onClick={handleLineClick}
-        role={allowComments ? 'button' : undefined}
-        tabIndex={allowComments ? 0 : undefined}
-        onKeyDown={allowComments ? (e) => e.key === 'Enter' && handleLineClick() : undefined}
+        role={isClickable ? 'button' : undefined}
+        tabIndex={isClickable ? 0 : undefined}
+        onKeyDown={isClickable ? (e) => e.key === 'Enter' && handleLineClick() : undefined}
       >
         {/* Single line number for full file view */}
         <span className="w-14 px-2 py-0.5 text-right text-gray-400 select-none bg-gray-50 border-r border-gray-200 shrink-0">

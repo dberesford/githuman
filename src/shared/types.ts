@@ -4,10 +4,10 @@
 
 export interface Review {
   id: string;
-  title: string;
-  description: string | null;
   repositoryPath: string;
   baseRef: string | null;
+  sourceType: ReviewSourceType;
+  sourceRef: string | null; // branch name, commit SHAs, etc.
   snapshotData: string; // JSON serialized diff data
   status: ReviewStatus;
   createdAt: string;
@@ -15,6 +15,7 @@ export interface Review {
 }
 
 export type ReviewStatus = 'in_progress' | 'approved' | 'changes_requested';
+export type ReviewSourceType = 'staged' | 'branch' | 'commits';
 
 export interface Comment {
   id: string;
@@ -62,13 +63,11 @@ export interface RepositoryInfo {
 
 // API request/response types
 export interface CreateReviewRequest {
-  title: string;
-  description?: string;
+  sourceType?: ReviewSourceType;
+  sourceRef?: string; // branch name or commit SHAs
 }
 
 export interface UpdateReviewRequest {
-  title?: string;
-  description?: string;
   status?: ReviewStatus;
 }
 

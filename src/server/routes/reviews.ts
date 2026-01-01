@@ -95,7 +95,7 @@ const reviewRoutes: FastifyPluginAsync = async (fastify) => {
 
   /**
    * PATCH /api/reviews/:id
-   * Update review metadata (title, description, status)
+   * Update review status
    */
   fastify.patch<{
     Params: ReviewParams;

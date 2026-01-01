@@ -57,10 +57,10 @@ describe('ExportService', () => {
 
     const review = reviewRepo.create({
       id: 'test-review-1',
-      title: 'Test Review',
-      description: 'A test review for export',
       repositoryPath: '/path/to/repo',
       baseRef: 'abc123def456',
+      sourceType: 'staged',
+      sourceRef: null,
       snapshotData,
       status: 'in_progress',
     });
@@ -81,11 +81,10 @@ describe('ExportService', () => {
       const markdown = exportService.exportToMarkdown(testReviewId);
 
       assert.ok(markdown);
-      assert.ok(markdown.includes('# Code Review: Test Review'));
+      assert.ok(markdown.includes('# Code Review: Staged changes'));
       assert.ok(markdown.includes('test-repo'));
       assert.ok(markdown.includes('main'));
       assert.ok(markdown.includes('In Progress'));
-      assert.ok(markdown.includes('A test review for export'));
       assert.ok(markdown.includes('**1** files changed'));
       assert.ok(markdown.includes('`src/index.ts`'));
     });

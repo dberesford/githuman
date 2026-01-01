@@ -9,6 +9,7 @@ import { parseDiff, getDiffSummary, type DiffSummary } from './diff.service.ts';
 import type {
   Review,
   ReviewStatus,
+  ReviewSourceType,
   DiffFile,
   RepositoryInfo,
   CreateReviewRequest,
@@ -38,26 +39,49 @@ export class ReviewService {
   /**
    * Create a new review from current staged changes
    */
-  async create(request: CreateReviewRequest): Promise<ReviewWithDetails> {
+  async create(request: CreateReviewRequest = {}): Promise<ReviewWithDetails> {
     // Verify we're in a git repo
     const isRepo = await this.git.isRepo();
     if (!isRepo) {
       throw new ReviewError('Not a git repository', 'NOT_GIT_REPO');
     }
 
-    // Get staged diff
-    const diffText = await this.git.getStagedDiff();
-    const hasStagedChanges = await this.git.hasStagedChanges();
+    const sourceType = request.sourceType || 'staged';
+    const sourceRef = request.sourceRef || null;
 
-    if (!hasStagedChanges) {
-      throw new ReviewError('No staged changes to review', 'NO_STAGED_CHANGES');
+    let diffText: string;
+    let baseRef: string | null;
+
+    if (sourceType === 'staged') {
+      // Get staged diff
+      diffText = await this.git.getStagedDiff();
+      const hasStagedChanges = await this.git.hasStagedChanges();
+
+      if (!hasStagedChanges) {
+        throw new ReviewError('No staged changes to review', 'NO_STAGED_CHANGES');
+      }
+      baseRef = await this.git.getHeadSha();
+    } else if (sourceType === 'branch' && sourceRef) {
+      // Compare branches
+      diffText = await this.git.getBranchDiff(sourceRef);
+      baseRef = await this.git.getHeadSha();
+    } else if (sourceType === 'commits' && sourceRef) {
+      // Get diff for specific commits
+      const commits = sourceRef.split(',').map(s => s.trim());
+      diffText = await this.git.getCommitsDiff(commits);
+      baseRef = commits[commits.length - 1] || null;
+    } else {
+      throw new ReviewError('Invalid source type or missing source ref', 'INVALID_SOURCE');
     }
 
     // Parse diff and get repository info
     const files = parseDiff(diffText);
     const summary = getDiffSummary(files);
     const repoInfo = await this.git.getRepositoryInfo();
-    const baseRef = await this.git.getHeadSha();
+
+    if (files.length === 0) {
+      throw new ReviewError('No changes to review', 'NO_CHANGES');
+    }
 
     // Create snapshot data
     const snapshotData = JSON.stringify({
@@ -68,20 +92,20 @@ export class ReviewService {
     // Create review
     const review = this.repo.create({
       id: randomUUID(),
-      title: request.title,
-      description: request.description ?? null,
       repositoryPath: repoInfo.path,
       baseRef,
+      sourceType,
+      sourceRef,
       snapshotData,
       status: 'in_progress',
     });
 
     return {
       id: review.id,
-      title: review.title,
-      description: review.description,
       repositoryPath: review.repositoryPath,
       baseRef: review.baseRef,
+      sourceType: review.sourceType,
+      sourceRef: review.sourceRef,
       status: review.status,
       createdAt: review.createdAt,
       updatedAt: review.updatedAt,
@@ -116,6 +140,7 @@ export class ReviewService {
   list(options: {
     status?: ReviewStatus;
     repositoryPath?: string;
+    sourceType?: ReviewSourceType;
     page?: number;
     pageSize?: number;
   } = {}): PaginatedResponse<ReviewListItem> {
@@ -136,8 +161,6 @@ export class ReviewService {
    */
   update(id: string, request: UpdateReviewRequest): ReviewWithDetails | null {
     const review = this.repo.update(id, {
-      title: request.title,
-      description: request.description,
       status: request.status,
     });
 
@@ -186,10 +209,10 @@ export class ReviewService {
 
     return {
       id: review.id,
-      title: review.title,
-      description: review.description,
       repositoryPath: review.repositoryPath,
       baseRef: review.baseRef,
+      sourceType: review.sourceType,
+      sourceRef: review.sourceRef,
       status: review.status,
       createdAt: review.createdAt,
       updatedAt: review.updatedAt,
@@ -207,10 +230,10 @@ export class ReviewService {
 
     return {
       id: review.id,
-      title: review.title,
-      description: review.description,
       repositoryPath: review.repositoryPath,
       baseRef: review.baseRef,
+      sourceType: review.sourceType,
+      sourceRef: review.sourceRef,
       status: review.status,
       createdAt: review.createdAt,
       updatedAt: review.updatedAt,

@@ -21,10 +21,10 @@ describe('CommentRepository', () => {
     // Create a test review to attach comments to
     const review = reviewRepo.create({
       id: 'test-review-1',
-      title: 'Test Review',
-      description: null,
       repositoryPath: '/test/path',
       baseRef: 'abc123',
+      sourceType: 'staged',
+      sourceRef: null,
       snapshotData: '{}',
       status: 'in_progress',
     });

@@ -2,14 +2,14 @@
  * Review repository - data access layer for reviews
  */
 import type { DatabaseSync, StatementSync } from 'node:sqlite';
-import type { Review, ReviewStatus } from '../../shared/types.ts';
+import type { Review, ReviewStatus, ReviewSourceType } from '../../shared/types.ts';
 
 interface ReviewRow {
   id: string;
-  title: string;
-  description: string | null;
   repository_path: string;
   base_ref: string | null;
+  source_type: string;
+  source_ref: string | null;
   snapshot_data: string;
   status: string;
   created_at: string;
@@ -19,10 +19,10 @@ interface ReviewRow {
 function rowToReview(row: ReviewRow): Review {
   return {
     id: row.id,
-    title: row.title,
-    description: row.description,
     repositoryPath: row.repository_path,
     baseRef: row.base_ref,
+    sourceType: row.source_type as ReviewSourceType,
+    sourceRef: row.source_ref,
     snapshotData: row.snapshot_data,
     status: row.status as ReviewStatus,
     createdAt: row.created_at,
@@ -34,7 +34,7 @@ export class ReviewRepository {
   private db: DatabaseSync;
   private stmtFindById: StatementSync;
   private stmtInsert: StatementSync;
-  private stmtUpdateMeta: StatementSync;
+  private stmtUpdateStatus: StatementSync;
   private stmtDelete: StatementSync;
   private stmtCountAll: StatementSync;
   private stmtCountByStatus: StatementSync;
@@ -49,15 +49,13 @@ export class ReviewRepository {
     `);
 
     this.stmtInsert = db.prepare(`
-      INSERT INTO reviews (id, title, description, repository_path, base_ref, snapshot_data, status, created_at, updated_at)
+      INSERT INTO reviews (id, repository_path, base_ref, source_type, source_ref, snapshot_data, status, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
-    this.stmtUpdateMeta = db.prepare(`
+    this.stmtUpdateStatus = db.prepare(`
       UPDATE reviews
-      SET title = COALESCE(?, title),
-          description = COALESCE(?, description),
-          status = COALESCE(?, status),
+      SET status = COALESCE(?, status),
           updated_at = ?
       WHERE id = ?
     `);
@@ -87,10 +85,11 @@ export class ReviewRepository {
   findAll(options: {
     status?: ReviewStatus;
     repositoryPath?: string;
+    sourceType?: ReviewSourceType;
     page?: number;
     pageSize?: number;
   } = {}): { data: Review[]; total: number } {
-    const { status, repositoryPath, page = 1, pageSize = 20 } = options;
+    const { status, repositoryPath, sourceType, page = 1, pageSize = 20 } = options;
     const offset = (page - 1) * pageSize;
 
     const conditions: string[] = [];
@@ -104,6 +103,11 @@ export class ReviewRepository {
     if (repositoryPath) {
       conditions.push('repository_path = ?');
       params.push(repositoryPath);
+    }
+
+    if (sourceType) {
+      conditions.push('source_type = ?');
+      params.push(sourceType);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -133,10 +137,10 @@ export class ReviewRepository {
 
     this.stmtInsert.run(
       review.id,
-      review.title,
-      review.description,
       review.repositoryPath,
       review.baseRef,
+      review.sourceType,
+      review.sourceRef,
       review.snapshotData,
       review.status,
       now,
@@ -147,8 +151,6 @@ export class ReviewRepository {
   }
 
   update(id: string, updates: {
-    title?: string;
-    description?: string | null;
     status?: ReviewStatus;
   }): Review | null {
     const existing = this.findById(id);
@@ -158,9 +160,7 @@ export class ReviewRepository {
 
     const now = new Date().toISOString();
 
-    this.stmtUpdateMeta.run(
-      updates.title ?? null,
-      updates.description ?? null,
+    this.stmtUpdateStatus.run(
       updates.status ?? null,
       now,
       id

@@ -9,9 +9,10 @@ interface DiffLineProps {
   filePath: string;
   showLineNumbers?: boolean;
   allowComments?: boolean;
+  onLineClick?: (filePath: string, lineNumber: number, lineType: 'added' | 'removed' | 'context') => void;
 }
 
-export function DiffLine({ line, filePath, showLineNumbers = true, allowComments = false }: DiffLineProps) {
+export function DiffLine({ line, filePath, showLineNumbers = true, allowComments = false, onLineClick }: DiffLineProps) {
   const commentContext = allowComments ? useCommentContext() : null;
 
   const lineKey = getLineKey(filePath, line.newLineNumber ?? line.oldLineNumber, line.type);
@@ -36,7 +37,16 @@ export function DiffLine({ line, filePath, showLineNumbers = true, allowComments
     context: ' ',
   }[line.type];
 
+  const lineNumber = line.newLineNumber ?? line.oldLineNumber;
+  const isClickable = allowComments || onLineClick;
+
   const handleLineClick = () => {
+    // If there's an onLineClick callback (e.g., to create a review first), call it
+    if (onLineClick && lineNumber !== null) {
+      onLineClick(filePath, lineNumber, line.type);
+      return;
+    }
+    // Otherwise, use the normal comment context flow
     if (!allowComments || isAddingComment) return;
     commentContext?.setActiveCommentLine(lineKey);
   };
@@ -61,12 +71,12 @@ export function DiffLine({ line, filePath, showLineNumbers = true, allowComments
         className={cn(
           'flex font-mono text-sm group relative',
           bgClass,
-          allowComments && !isAddingComment && 'cursor-pointer hover:bg-blue-50/50'
+          isClickable && !isAddingComment && 'cursor-pointer hover:bg-blue-50/50'
         )}
         onClick={handleLineClick}
-        role={allowComments ? 'button' : undefined}
-        tabIndex={allowComments ? 0 : undefined}
-        onKeyDown={allowComments ? (e) => e.key === 'Enter' && handleLineClick() : undefined}
+        role={isClickable ? 'button' : undefined}
+        tabIndex={isClickable ? 0 : undefined}
+        onKeyDown={isClickable ? (e) => e.key === 'Enter' && handleLineClick() : undefined}
       >
         {showLineNumbers && (
           <>

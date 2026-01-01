@@ -80,3 +80,25 @@ export const diffApi = {
 export const repoApi = {
   getInfo: () => api.get<RepositoryInfo>('/info'),
 };
+
+// Git API types
+export interface BranchInfo {
+  name: string;
+  isRemote: boolean;
+  isCurrent: boolean;
+}
+
+export interface CommitInfo {
+  sha: string;
+  message: string;
+  author: string;
+  date: string;
+}
+
+// Git API
+export const gitApi = {
+  getInfo: () => api.get<RepositoryInfo>('/git/info'),
+  getBranches: () => api.get<BranchInfo[]>('/git/branches'),
+  getCommits: (limit?: number) => api.get<CommitInfo[]>(`/git/commits${limit ? `?limit=${limit}` : ''}`),
+  hasStagedChanges: () => api.get<{ hasStagedChanges: boolean }>('/git/staged'),
+};

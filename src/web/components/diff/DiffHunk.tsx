@@ -6,9 +6,10 @@ interface DiffHunkProps {
   filePath: string;
   showLineNumbers?: boolean;
   allowComments?: boolean;
+  onLineClick?: (filePath: string, lineNumber: number, lineType: 'added' | 'removed' | 'context') => void;
 }
 
-export function DiffHunk({ hunk, filePath, showLineNumbers = true, allowComments = false }: DiffHunkProps) {
+export function DiffHunk({ hunk, filePath, showLineNumbers = true, allowComments = false, onLineClick }: DiffHunkProps) {
   const header = `@@ -${hunk.oldStart},${hunk.oldLines} +${hunk.newStart},${hunk.newLines} @@`;
 
   return (
@@ -24,6 +25,7 @@ export function DiffHunk({ hunk, filePath, showLineNumbers = true, allowComments
             filePath={filePath}
             showLineNumbers={showLineNumbers}
             allowComments={allowComments}
+            onLineClick={onLineClick}
           />
         ))}
       </div>

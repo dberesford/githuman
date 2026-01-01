@@ -55,10 +55,10 @@ describe('migrations', () => {
     const columnNames = columns.map((c) => c.name);
 
     assert.ok(columnNames.includes('id'));
-    assert.ok(columnNames.includes('title'));
-    assert.ok(columnNames.includes('description'));
     assert.ok(columnNames.includes('repository_path'));
     assert.ok(columnNames.includes('base_ref'));
+    assert.ok(columnNames.includes('source_type'));
+    assert.ok(columnNames.includes('source_ref'));
     assert.ok(columnNames.includes('snapshot_data'));
     assert.ok(columnNames.includes('status'));
     assert.ok(columnNames.includes('created_at'));
@@ -108,7 +108,7 @@ describe('migrations', () => {
   it('should cascade delete comments when review is deleted', () => {
     // Insert a review
     db.prepare(
-      "INSERT INTO reviews (id, title, repository_path, snapshot_data) VALUES ('r1', 'Test', '/path', '{}')"
+      "INSERT INTO reviews (id, repository_path, source_type, snapshot_data) VALUES ('r1', '/path', 'staged', '{}')"
     ).run();
 
     // Insert a comment

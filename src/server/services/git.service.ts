@@ -239,6 +239,83 @@ export class GitService {
       return null;
     }
   }
+
+  /**
+   * Get diff between current branch and another branch
+   */
+  async getBranchDiff(targetBranch: string): Promise<string> {
+    // Get diff from target branch to HEAD (shows what would be merged)
+    const diff = await this.git.diff([`${targetBranch}...HEAD`]);
+    return diff;
+  }
+
+  /**
+   * Get diff for specific commits
+   */
+  async getCommitsDiff(commits: string[]): Promise<string> {
+    if (commits.length === 1) {
+      // Single commit - show that commit's diff
+      const diff = await this.git.show([commits[0], '--format=']);
+      return diff;
+    } else if (commits.length > 1) {
+      // Range of commits - show diff from first to last
+      const first = commits[0];
+      const last = commits[commits.length - 1];
+      const diff = await this.git.diff([`${first}^..${last}`]);
+      return diff;
+    }
+    return '';
+  }
+
+  /**
+   * List all branches (local and remote)
+   */
+  async getBranches(): Promise<BranchInfo[]> {
+    const result = await this.git.branch(['-a', '-v']);
+    const branches: BranchInfo[] = [];
+
+    for (const branch of result.all) {
+      const isRemote = branch.startsWith('remotes/');
+      const isCurrent = branch === result.current;
+      const name = isRemote ? branch.replace(/^remotes\/origin\//, '') : branch;
+
+      // Skip HEAD pointer
+      if (name === 'HEAD') continue;
+
+      branches.push({
+        name,
+        isRemote,
+        isCurrent,
+      });
+    }
+
+    // Deduplicate (local and remote with same name)
+    const seen = new Set<string>();
+    return branches.filter(b => {
+      if (seen.has(b.name)) return false;
+      seen.add(b.name);
+      return true;
+    });
+  }
+
+  /**
+   * Get recent commits
+   */
+  async getCommits(limit: number = 20): Promise<CommitInfo[]> {
+    const log = await this.git.log([`-${limit}`, '--format=%H|%s|%an|%ai']);
+    const commits: CommitInfo[] = [];
+
+    for (const entry of log.all) {
+      commits.push({
+        sha: entry.hash,
+        message: entry.message,
+        author: entry.author_name,
+        date: entry.date,
+      });
+    }
+
+    return commits;
+  }
 }
 
 export interface StagedFile {
@@ -258,4 +335,17 @@ export interface DiffStats {
   totalFiles: number;
   totalAdditions: number;
   totalDeletions: number;
+}
+
+export interface BranchInfo {
+  name: string;
+  isRemote: boolean;
+  isCurrent: boolean;
+}
+
+export interface CommitInfo {
+  sha: string;
+  message: string;
+  author: string;
+  date: string;
 }

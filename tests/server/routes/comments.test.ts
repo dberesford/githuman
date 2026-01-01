@@ -22,10 +22,10 @@ describe('comment routes', () => {
     const reviewRepo = new ReviewRepository(db);
     const review = reviewRepo.create({
       id: 'test-review-1',
-      title: 'Test Review',
-      description: null,
       repositoryPath: process.cwd(),
       baseRef: 'abc123',
+      sourceType: 'staged',
+      sourceRef: null,
       snapshotData: JSON.stringify({ files: [], repository: { name: 'test', branch: 'main', remote: null, path: process.cwd() } }),
       status: 'in_progress',
     });

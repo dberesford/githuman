@@ -74,7 +74,7 @@ describe('review routes', () => {
         method: 'POST',
         url: '/api/reviews',
         payload: {
-          title: 'Test Review',
+          sourceType: 'staged',
         },
       });
 
@@ -85,16 +85,17 @@ describe('review routes', () => {
       assert.strictEqual(body.code, 'NO_STAGED_CHANGES');
     });
 
-    it('should require title in body', async () => {
+    it('should work with empty body (defaults to staged)', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/reviews',
         payload: {},
       });
 
-      // Without staged changes, still returns the NO_STAGED_CHANGES error
-      // because validation happens after checking staged changes
+      // Without staged changes, returns the NO_STAGED_CHANGES error
       assert.strictEqual(response.statusCode, 400);
+      const body = JSON.parse(response.body);
+      assert.strictEqual(body.code, 'NO_STAGED_CHANGES');
     });
   });
 
@@ -118,7 +119,7 @@ describe('review routes', () => {
         method: 'PATCH',
         url: '/api/reviews/non-existent-id',
         payload: {
-          title: 'Updated Title',
+          status: 'approved',
         },
       });
 
@@ -207,7 +208,7 @@ describe('review routes with non-git directory', () => {
       method: 'POST',
       url: '/api/reviews',
       payload: {
-        title: 'Test Review',
+        sourceType: 'staged',
       },
     });
 

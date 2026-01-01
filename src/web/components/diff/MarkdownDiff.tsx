@@ -242,30 +242,30 @@ function PreviewContent({ content, loading, error }: PreviewContentProps) {
             <h4 className="text-base font-semibold mt-3 mb-2">{children}</h4>
           ),
           // Style lists - use proper nesting with margin-left
-          ul: ({ children, depth }) => (
-            <ul className={cn(
-              'list-disc my-2 space-y-1',
-              depth === 0 ? 'ml-4' : 'ml-6 mt-1'
-            )}>
+          ul: ({ children }) => (
+            <ul className="list-disc my-2 space-y-1 ml-4 [&_ul]:ml-6 [&_ul]:mt-1">
               {children}
             </ul>
           ),
-          ol: ({ children, depth }) => (
-            <ol className={cn(
-              'list-decimal my-2 space-y-1',
-              depth === 0 ? 'ml-4' : 'ml-6 mt-1'
-            )}>
+          ol: ({ children }) => (
+            <ol className="list-decimal my-2 space-y-1 ml-4 [&_ol]:ml-6 [&_ol]:mt-1">
               {children}
             </ol>
           ),
-          li: ({ children, checked }) => {
-            // Task list item
-            if (checked !== null && checked !== undefined) {
+          li: ({ children, node }) => {
+            // Check for task list item by looking at the node
+            const isTaskList = node?.properties?.className?.toString().includes('task-list-item');
+            const inputChild = node?.children?.find(
+              (child): child is typeof child & { tagName: string; properties: { checked?: boolean } } =>
+                typeof child === 'object' && 'tagName' in child && child.tagName === 'input'
+            );
+
+            if (isTaskList && inputChild) {
               return (
                 <li className="list-none flex items-start gap-2 -ml-4">
                   <input
                     type="checkbox"
-                    checked={checked}
+                    checked={inputChild.properties?.checked ?? false}
                     readOnly
                     className="mt-1 rounded border-gray-300"
                   />

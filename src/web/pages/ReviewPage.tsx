@@ -1,14 +1,31 @@
-import { useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useCallback, useEffect } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Sidebar } from '../components/layout/Sidebar';
 import { DiffView } from '../components/diff/DiffView';
-import { CommentProvider, useCommentContext } from '../contexts/CommentContext';
+import { CommentProvider, useCommentContext, getLineKey } from '../contexts/CommentContext';
 import { useCommentStats } from '../hooks/useComments';
 import { useReview, useUpdateReview } from '../hooks/useReviews';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { reviewsApi } from '../api/reviews';
 import { cn } from '../lib/utils';
-import type { ReviewStatus } from '../../shared/types';
+import type { ReviewStatus, ReviewSourceType } from '../../shared/types';
+
+function getSourceLabel(sourceType: ReviewSourceType, sourceRef: string | null) {
+  if (sourceType === 'staged') {
+    return 'Staged changes';
+  }
+  if (sourceType === 'branch' && sourceRef) {
+    return `Branch: ${sourceRef}`;
+  }
+  if (sourceType === 'commits' && sourceRef) {
+    const commits = sourceRef.split(',');
+    if (commits.length === 1) {
+      return `Commit: ${commits[0].slice(0, 8)}`;
+    }
+    return `${commits.length} commits`;
+  }
+  return 'Unknown';
+}
 
 const statusOptions: { value: ReviewStatus; label: string; color: string }[] = [
   { value: 'in_progress', label: 'In Progress', color: 'bg-yellow-100 text-yellow-700' },
@@ -25,6 +42,34 @@ function formatDate(dateString: string) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function InitialLineSelector() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { setActiveCommentLine, loading } = useCommentContext();
+
+  useEffect(() => {
+    if (loading) return;
+
+    const file = searchParams.get('file');
+    const line = searchParams.get('line');
+    const lineType = searchParams.get('lineType') as 'added' | 'removed' | 'context' | null;
+
+    if (file && line && lineType) {
+      const lineKey = getLineKey(file, parseInt(line, 10), lineType);
+      setActiveCommentLine(lineKey);
+
+      // Clear the URL params after setting the active line
+      setSearchParams({}, { replace: true });
+
+      // Scroll to the file
+      setTimeout(() => {
+        document.getElementById(file)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [searchParams, setSearchParams, setActiveCommentLine, loading]);
+
+  return null;
 }
 
 function CommentStats({ reviewId }: { reviewId: string }) {
@@ -151,6 +196,7 @@ export function ReviewPage() {
 
   return (
     <CommentProvider reviewId={id!}>
+      <InitialLineSelector />
       <div className="flex-1 flex min-w-0">
         <Sidebar
           files={data.files}
@@ -166,17 +212,21 @@ export function ReviewPage() {
           <div className="p-3 sm:p-4 border-b border-gray-200 bg-white">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="min-w-0">
-                <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">{data.title}</h1>
-                {data.description && (
-                  <p className="mt-1 text-sm text-gray-500 line-clamp-2">{data.description}</p>
-                )}
-                <div className="mt-2 flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
-                  <span>Created {formatDate(data.createdAt)}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-gray-700 bg-gray-100 px-2 py-0.5 rounded">
+                    {getSourceLabel(data.sourceType, data.sourceRef)}
+                  </span>
                   {data.baseRef && (
-                    <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">
+                    <span className="font-mono text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                       {data.baseRef.slice(0, 8)}
                     </span>
                   )}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
+                  <span>Created {formatDate(data.createdAt)}</span>
+                  <span>{data.summary.totalFiles} files</span>
+                  <span className="text-green-600">+{data.summary.totalAdditions}</span>
+                  <span className="text-red-600">-{data.summary.totalDeletions}</span>
                 </div>
                 <div className="mt-2">
                   <CommentStats reviewId={id!} />

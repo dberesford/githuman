@@ -5,10 +5,12 @@ interface DiffViewProps {
   files: DiffFileType[];
   summary?: DiffSummary;
   selectedFile?: string;
+  forceExpandedFile?: string;
   allowComments?: boolean;
+  onLineClick?: (filePath: string, lineNumber: number, lineType: 'added' | 'removed' | 'context') => void;
 }
 
-export function DiffView({ files, summary, selectedFile, allowComments = false }: DiffViewProps) {
+export function DiffView({ files, summary, selectedFile, forceExpandedFile, allowComments = false, onLineClick }: DiffViewProps) {
   if (files.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-gray-500">
@@ -53,30 +55,35 @@ export function DiffView({ files, summary, selectedFile, allowComments = false }
               <span className="font-medium">-{summary.totalDeletions}</span> deletions
             </span>
             {summary.filesAdded > 0 && (
-              <span className="text-gray-500">{summary.filesAdded} added</span>
+              <span className="hidden sm:inline text-gray-500">{summary.filesAdded} added</span>
             )}
             {summary.filesModified > 0 && (
-              <span className="text-gray-500">{summary.filesModified} modified</span>
+              <span className="hidden sm:inline text-gray-500">{summary.filesModified} modified</span>
             )}
             {summary.filesDeleted > 0 && (
-              <span className="text-gray-500">{summary.filesDeleted} deleted</span>
+              <span className="hidden sm:inline text-gray-500">{summary.filesDeleted} deleted</span>
             )}
             {summary.filesRenamed > 0 && (
-              <span className="text-gray-500">{summary.filesRenamed} renamed</span>
+              <span className="hidden sm:inline text-gray-500">{summary.filesRenamed} renamed</span>
             )}
           </div>
         </div>
       )}
 
       <div className="space-y-4">
-        {filesToShow.map((file) => (
-          <DiffFile
-            key={file.newPath || file.oldPath}
-            file={file}
-            defaultExpanded={filesToShow.length <= 5}
-            allowComments={allowComments}
-          />
-        ))}
+        {filesToShow.map((file) => {
+          const filePath = file.newPath || file.oldPath;
+          return (
+            <DiffFile
+              key={filePath}
+              file={file}
+              defaultExpanded={filesToShow.length <= 5}
+              forceExpanded={forceExpandedFile === filePath}
+              allowComments={allowComments}
+              onLineClick={onLineClick}
+            />
+          );
+        })}
       </div>
     </div>
   );

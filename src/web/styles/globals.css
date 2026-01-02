@@ -27,6 +27,17 @@ body {
   @apply select-none text-right pr-2 text-sm font-mono;
 }
 
+/* Syntax highlighting - ensure shiki integrates with diff backgrounds */
+.shiki-line {
+  /* Remove any background from shiki */
+  background: transparent !important;
+}
+
+.shiki-line span {
+  /* Ensure shiki tokens don't have backgrounds that clash with diff */
+  background: transparent !important;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   @apply w-2 h-2;

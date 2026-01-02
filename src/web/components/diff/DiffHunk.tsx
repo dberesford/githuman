@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { DiffLine } from './DiffLine';
+import { useHighlighterContext } from '../../contexts/HighlighterContext';
 import type { DiffHunk as DiffHunkType } from '../../../shared/types';
 
 interface DiffHunkProps {
@@ -10,7 +12,16 @@ interface DiffHunkProps {
 }
 
 export function DiffHunk({ hunk, filePath, showLineNumbers = true, allowComments = false, onLineClick }: DiffHunkProps) {
+  const highlighter = useHighlighterContext();
   const header = `@@ -${hunk.oldStart},${hunk.oldLines} +${hunk.newStart},${hunk.newLines} @@`;
+
+  // Trigger highlighting for this file's lines
+  useEffect(() => {
+    if (highlighter?.isReady) {
+      const lines = hunk.lines.map((l) => l.content);
+      highlighter.highlightFile(filePath, lines);
+    }
+  }, [highlighter?.isReady, filePath, hunk.lines, highlighter]);
 
   return (
     <div className="border-b border-gray-200 last:border-b-0 min-w-max">

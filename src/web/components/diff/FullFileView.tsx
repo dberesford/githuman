@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { cn } from '../../lib/utils';
 import { useCommentContext, getLineKey } from '../../contexts/CommentContext';
+import { useHighlighterContext } from '../../contexts/HighlighterContext';
 import { LineComment } from './LineComment';
 import { CommentForm } from './CommentForm';
 import { diffApi, type FileContent } from '../../api/diff';
@@ -22,6 +23,7 @@ export function FullFileView({ filePath, hunks, allowComments = false, onLineCli
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<FileContent | null>(null);
+  const highlighter = useHighlighterContext();
 
   useEffect(() => {
     setLoading(true);
@@ -33,6 +35,13 @@ export function FullFileView({ filePath, hunks, allowComments = false, onLineCli
       .catch((err) => setError(err.message || 'Failed to load file'))
       .finally(() => setLoading(false));
   }, [filePath]);
+
+  // Trigger highlighting when file content is loaded
+  useEffect(() => {
+    if (fileContent && highlighter?.isReady) {
+      highlighter.highlightFile(filePath, fileContent.lines);
+    }
+  }, [fileContent, filePath, highlighter?.isReady, highlighter]);
 
   // Build a map of line numbers to their change status
   const changedLines = useMemo(() => {
@@ -103,6 +112,8 @@ interface FullFileLineProps {
 
 function FullFileLine({ lineNumber, content, changeType, filePath, allowComments = false, onLineClick }: FullFileLineProps) {
   const commentContext = allowComments ? useCommentContext() : null;
+  const highlighter = useHighlighterContext();
+  const highlightedHtml = highlighter?.getHighlightedLine(filePath, content);
 
   const lineType = changeType || 'context';
   const lineKey = getLineKey(filePath, lineNumber, lineType);
@@ -166,7 +177,14 @@ function FullFileLine({ lineNumber, content, changeType, filePath, allowComments
           {lineNumber}
         </span>
         <pre className={cn('flex-1 py-0.5 px-4 whitespace-pre', textClass)}>
-          <code>{content || ' '}</code>
+          {highlightedHtml ? (
+            <code
+              className="shiki-line"
+              dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+            />
+          ) : (
+            <code>{content || ' '}</code>
+          )}
         </pre>
 
         {/* Change indicator */}

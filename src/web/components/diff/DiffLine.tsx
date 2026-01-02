@@ -1,5 +1,6 @@
 import { cn } from '../../lib/utils';
 import { useCommentContext, getLineKey } from '../../contexts/CommentContext';
+import { useHighlighterContext } from '../../contexts/HighlighterContext';
 import { LineComment } from './LineComment';
 import { CommentForm } from './CommentForm';
 import type { DiffLine as DiffLineType } from '../../../shared/types';
@@ -14,6 +15,8 @@ interface DiffLineProps {
 
 export function DiffLine({ line, filePath, showLineNumbers = true, allowComments = false, onLineClick }: DiffLineProps) {
   const commentContext = allowComments ? useCommentContext() : null;
+  const highlighter = useHighlighterContext();
+  const highlightedHtml = highlighter?.getHighlightedLine(filePath, line.content);
 
   const lineKey = getLineKey(filePath, line.newLineNumber ?? line.oldLineNumber, line.type);
   const lineComments = commentContext?.commentsByLine.get(lineKey) || [];
@@ -92,7 +95,14 @@ export function DiffLine({ line, filePath, showLineNumbers = true, allowComments
           {prefix}
         </span>
         <pre className={cn('flex-1 py-0.5 pr-4 whitespace-pre', textClass)}>
-          <code>{line.content || ' '}</code>
+          {highlightedHtml ? (
+            <code
+              className="shiki-line"
+              dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+            />
+          ) : (
+            <code>{line.content || ' '}</code>
+          )}
         </pre>
 
         {/* Comment count badge */}

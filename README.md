@@ -15,6 +15,7 @@ A local CLI tool for reviewing staged git changes with a web interface. Review y
 - **Web-based diff viewer** - Review staged changes in a clean, GitHub-like interface
 - **Inline comments** - Add comments to specific lines with code suggestions
 - **Review management** - Save reviews, track status (in progress, approved, changes requested)
+- **Todo list** - Track tasks during reviews via CLI or web interface
 - **Markdown export** - Export reviews with comments to markdown files
 - **Keyboard shortcuts** - Navigate quickly with vim-style shortcuts
 - **Local & private** - Everything runs locally, no data leaves your machine
@@ -106,6 +107,45 @@ code-review export last -o review.md
 code-review export last --no-resolved
 ```
 
+### Manage Todos
+
+Track tasks and action items during your review:
+
+```bash
+code-review todo <subcommand> [options]
+
+Subcommands:
+  add <content>     Add a new todo item
+  list              List all todos
+  done <id>         Mark todo as completed
+  undone <id>       Mark todo as not completed
+  remove <id>       Delete a todo
+  clear --done      Remove all completed todos
+
+Options:
+  --review <id>     Scope todo to a specific review
+  --done            Filter to show only completed todos
+  --pending         Filter to show only pending todos
+  --json            Output as JSON
+  -h, --help        Show help
+```
+
+Examples:
+
+```bash
+# Add a todo
+code-review todo add "Fix the type error in utils.ts"
+
+# List pending todos
+code-review todo list --pending
+
+# Mark a todo as done (use ID prefix)
+code-review todo done abc123
+
+# Clear all completed todos
+code-review todo clear --done
+```
+
 ## Web Interface
 
 ### Creating a Review
@@ -161,6 +201,14 @@ The server exposes a REST API at `/api`:
 | DELETE | `/api/comments/:id` | Delete comment |
 | POST | `/api/comments/:id/resolve` | Resolve comment |
 | POST | `/api/comments/:id/unresolve` | Unresolve comment |
+| GET | `/api/todos` | List todos |
+| GET | `/api/todos/stats` | Get todo statistics |
+| POST | `/api/todos` | Create todo |
+| GET | `/api/todos/:id` | Get todo |
+| PATCH | `/api/todos/:id` | Update todo |
+| DELETE | `/api/todos/:id` | Delete todo |
+| POST | `/api/todos/:id/toggle` | Toggle todo completion |
+| DELETE | `/api/todos/completed` | Clear completed todos |
 
 ### Authentication
 

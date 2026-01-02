@@ -27,12 +27,12 @@ test.describe('Reviews Page', () => {
     }
   });
 
-  test('should navigate to staged changes when clicking New Review', async ({ page }) => {
+  test('should navigate to new review page when clicking New Review', async ({ page }) => {
     await page.goto('/');
 
     await page.getByRole('link', { name: 'New Review' }).click();
 
-    await expect(page).toHaveURL('/staged');
+    await expect(page).toHaveURL('/new');
   });
 
   test('should handle 404 for non-existent review', async ({ page }) => {

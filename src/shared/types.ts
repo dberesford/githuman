@@ -30,6 +30,15 @@ export interface Comment {
   updatedAt: string;
 }
 
+export interface Todo {
+  id: string;
+  content: string;
+  completed: boolean;
+  reviewId: string | null; // null for global todos
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DiffFile {
   oldPath: string;
   newPath: string;
@@ -82,6 +91,16 @@ export interface CreateCommentRequest {
 export interface UpdateCommentRequest {
   content?: string;
   suggestion?: string;
+}
+
+export interface CreateTodoRequest {
+  content: string;
+  reviewId?: string;
+}
+
+export interface UpdateTodoRequest {
+  content?: string;
+  completed?: boolean;
 }
 
 export interface ApiError {

@@ -15,7 +15,8 @@ test.describe('Staged Changes Page', () => {
     await page.waitForTimeout(500);
 
     // Sidebar should be visible (either with files or "No files to display")
-    const sidebar = page.locator('aside');
+    // Use a more specific selector to avoid matching the todo drawer
+    const sidebar = page.locator('aside').filter({ hasText: /Files/ });
     await expect(sidebar).toBeVisible();
   });
 

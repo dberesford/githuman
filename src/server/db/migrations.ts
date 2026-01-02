@@ -86,6 +86,24 @@ export const migrations: Migration[] = [
       CREATE INDEX idx_reviews_source_type ON reviews(source_type);
     `,
   },
+  {
+    version: 4,
+    name: 'create_todos_table',
+    up: `
+      CREATE TABLE todos (
+        id TEXT PRIMARY KEY,
+        content TEXT NOT NULL,
+        completed INTEGER DEFAULT 0,
+        review_id TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE
+      ) STRICT;
+
+      CREATE INDEX idx_todos_review ON todos(review_id);
+      CREATE INDEX idx_todos_completed ON todos(completed);
+    `,
+  },
 ];
 
 function getCurrentVersion(db: DatabaseSync): number {

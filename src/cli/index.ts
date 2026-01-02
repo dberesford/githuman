@@ -40,6 +40,7 @@ Commands:
   serve     Start the review server and open web interface
   list      List all saved reviews for the current repository
   export    Export a review to markdown
+  todo      Manage todo items for tracking tasks
 
 Options:
   -h, --help      Show this help message
@@ -77,6 +78,11 @@ switch (command) {
   case 'export': {
     const { exportCommand } = await import('./commands/export.ts');
     await exportCommand(process.argv.slice(3));
+    break;
+  }
+  case 'todo': {
+    const { todoCommand } = await import('./commands/todo.ts');
+    await todoCommand(process.argv.slice(3));
     break;
   }
   default:

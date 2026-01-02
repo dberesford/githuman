@@ -1,6 +1,6 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
-import { spawn } from 'node:child_process';
+import { spawn, execSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -9,8 +9,9 @@ import { dirname, join } from 'node:path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CLI_PATH = join(__dirname, '../../src/cli/index.ts');
 
-// Create a temp directory for tests that check for empty database
+// Create temp directories for tests
 let tempDir: string;
+let todoTempDir: string;
 
 interface ExecResult {
   stdout: string;
@@ -159,6 +160,93 @@ describe('CLI', () => {
       assert.ok(
         output === '[]' || output.includes('No reviews found')
       );
+    });
+  });
+
+  describe('todo command', () => {
+    before(() => {
+      // Create temp git repo for todo tests
+      todoTempDir = mkdtempSync(join(tmpdir(), 'todo-cli-test-'));
+      execSync('git init', { cwd: todoTempDir, stdio: 'ignore' });
+      execSync('git config user.email "test@test.com"', { cwd: todoTempDir, stdio: 'ignore' });
+      execSync('git config user.name "Test"', { cwd: todoTempDir, stdio: 'ignore' });
+    });
+
+    after(() => {
+      if (todoTempDir) {
+        rmSync(todoTempDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should show help with --help flag', async () => {
+      const result = await runCli(['todo', '--help']);
+
+      assert.strictEqual(result.exitCode, 0);
+      assert.ok(result.stdout.includes('Usage: code-review todo'));
+      assert.ok(result.stdout.includes('add'));
+      assert.ok(result.stdout.includes('list'));
+      assert.ok(result.stdout.includes('done'));
+      assert.ok(result.stdout.includes('remove'));
+    });
+
+    it('should show help with -h flag', async () => {
+      const result = await runCli(['todo', '-h']);
+
+      assert.strictEqual(result.exitCode, 0);
+      assert.ok(result.stdout.includes('Usage: code-review todo'));
+    });
+
+    it('should show no todos message when database does not exist', async () => {
+      const result = await runCli(['todo', 'list'], { cwd: todoTempDir });
+
+      assert.strictEqual(result.exitCode, 0);
+      assert.ok(result.stdout.includes('No todos found'));
+    });
+
+    it('should output empty array with --json when no todos', async () => {
+      const result = await runCli(['todo', 'list', '--json'], { cwd: todoTempDir });
+
+      assert.strictEqual(result.exitCode, 0);
+      assert.strictEqual(result.stdout.trim(), '[]');
+    });
+
+    it('should add a todo', async () => {
+      const result = await runCli(['todo', 'add', 'Test todo item'], { cwd: todoTempDir });
+
+      assert.strictEqual(result.exitCode, 0);
+      assert.ok(result.stdout.includes('Created todo'));
+      assert.ok(result.stdout.includes('Test todo item'));
+    });
+
+    it('should list todos after adding', async () => {
+      const result = await runCli(['todo', 'list'], { cwd: todoTempDir });
+
+      assert.strictEqual(result.exitCode, 0);
+      assert.ok(result.stdout.includes('Test todo item'));
+      assert.ok(result.stdout.includes('[ ]')); // pending
+    });
+
+    it('should add todo with --json output', async () => {
+      const result = await runCli(['todo', 'add', 'JSON test todo', '--json'], { cwd: todoTempDir });
+
+      assert.strictEqual(result.exitCode, 0);
+      const data = JSON.parse(result.stdout);
+      assert.strictEqual(data.content, 'JSON test todo');
+      assert.strictEqual(data.completed, false);
+    });
+
+    it('should require content for add', async () => {
+      const result = await runCli(['todo', 'add'], { cwd: todoTempDir });
+
+      assert.strictEqual(result.exitCode, 1);
+      assert.ok(result.stderr.includes('content is required'));
+    });
+
+    it('should require --done flag for clear', async () => {
+      const result = await runCli(['todo', 'clear'], { cwd: todoTempDir });
+
+      assert.strictEqual(result.exitCode, 1);
+      assert.ok(result.stderr.includes('--done flag is required'));
     });
   });
 });

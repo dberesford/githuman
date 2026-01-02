@@ -15,7 +15,7 @@ Manage todo items for tracking tasks during review.
 
 Subcommands:
   add <content>          Add a new todo item
-  list                   List all todos
+  list                   List todos (defaults to pending only)
   done <id>              Mark todo as completed
   undone <id>            Mark todo as not completed
   remove <id>            Delete a todo
@@ -23,14 +23,16 @@ Subcommands:
 
 Options:
   --review <id>          Scope todo to a specific review
-  --done                 Filter to show only completed todos (list) or clear completed (clear)
-  --pending              Filter to show only pending todos
+  --done                 Show/clear completed (done) todos instead of pending
+  --all                  Show all todos (list only)
   --json                 Output as JSON
   -h, --help             Show this help message
 
 Examples:
   code-review todo add "Fix the type error in utils.ts"
-  code-review todo list --pending
+  code-review todo list                    # Shows pending todos
+  code-review todo list --done             # Shows completed todos
+  code-review todo list --all              # Shows all todos
   code-review todo done abc123
   code-review todo clear --done
 `);
@@ -43,7 +45,7 @@ export async function todoCommand(args: string[]) {
     options: {
       review: { type: 'string' },
       done: { type: 'boolean', default: false },
-      pending: { type: 'boolean', default: false },
+      all: { type: 'boolean', default: false },
       json: { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h' },
     },
@@ -89,20 +91,20 @@ export async function todoCommand(args: string[]) {
 
       case 'list': {
         let todos;
+        // Default to showing pending only, unless --all or --done is specified
+        const showDone = values.done;
+        const showAll = values.all;
+
         if (values.review) {
-          if (values.done) {
-            todos = repo.findByReviewAndCompleted(values.review, true);
-          } else if (values.pending) {
-            todos = repo.findByReviewAndCompleted(values.review, false);
-          } else {
+          if (showAll) {
             todos = repo.findByReview(values.review);
+          } else {
+            todos = repo.findByReviewAndCompleted(values.review, showDone);
           }
-        } else if (values.done) {
-          todos = repo.findByCompleted(true);
-        } else if (values.pending) {
-          todos = repo.findByCompleted(false);
-        } else {
+        } else if (showAll) {
           todos = repo.findAll();
+        } else {
+          todos = repo.findByCompleted(showDone);
         }
 
         if (values.json) {

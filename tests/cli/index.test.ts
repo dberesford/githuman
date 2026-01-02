@@ -248,5 +248,46 @@ describe('CLI', () => {
       assert.strictEqual(result.exitCode, 1);
       assert.ok(result.stderr.includes('--done flag is required'));
     });
+
+    it('should show only pending todos by default', async () => {
+      // First, add a todo and mark it done
+      const addResult = await runCli(['todo', 'add', 'Pending todo'], { cwd: todoTempDir });
+      assert.strictEqual(addResult.exitCode, 0);
+
+      const addResult2 = await runCli(['todo', 'add', 'Will be completed', '--json'], { cwd: todoTempDir });
+      assert.strictEqual(addResult2.exitCode, 0);
+      const todoData = JSON.parse(addResult2.stdout);
+      const todoId = todoData.id.slice(0, 8);
+
+      // Mark the second one as done
+      await runCli(['todo', 'done', todoId], { cwd: todoTempDir });
+
+      // Default list should show pending only
+      const listResult = await runCli(['todo', 'list'], { cwd: todoTempDir });
+      assert.strictEqual(listResult.exitCode, 0);
+      assert.ok(listResult.stdout.includes('Pending todo'));
+      // Should NOT show completed ones
+      assert.ok(!listResult.stdout.includes('Will be completed'));
+    });
+
+    it('should show only completed todos with --done', async () => {
+      const result = await runCli(['todo', 'list', '--done'], { cwd: todoTempDir });
+
+      assert.strictEqual(result.exitCode, 0);
+      assert.ok(result.stdout.includes('Will be completed'));
+      assert.ok(result.stdout.includes('[x]'));
+      // Should NOT show pending ones
+      assert.ok(!result.stdout.includes('Pending todo'));
+    });
+
+    it('should show all todos with --all', async () => {
+      const result = await runCli(['todo', 'list', '--all'], { cwd: todoTempDir });
+
+      assert.strictEqual(result.exitCode, 0);
+      assert.ok(result.stdout.includes('Pending todo'));
+      assert.ok(result.stdout.includes('Will be completed'));
+      assert.ok(result.stdout.includes('[ ]'));
+      assert.ok(result.stdout.includes('[x]'));
+    });
   });
 });

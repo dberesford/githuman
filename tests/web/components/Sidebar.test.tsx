@@ -43,12 +43,12 @@ describe('Sidebar', () => {
     expect(screen.getByText('Files (3)')).toBeDefined();
   });
 
-  it('renders file names', () => {
+  it('renders full file paths', () => {
     render(<Sidebar files={mockFiles} onFileSelect={() => {}} />);
 
-    expect(screen.getByText('app.ts')).toBeDefined();
-    expect(screen.getByText('utils.ts')).toBeDefined();
-    expect(screen.getByText('old.ts')).toBeDefined();
+    expect(screen.getByText('src/app.ts')).toBeDefined();
+    expect(screen.getByText('src/utils.ts')).toBeDefined();
+    expect(screen.getByText('src/old.ts')).toBeDefined();
   });
 
   it('renders status indicators', () => {
@@ -70,7 +70,7 @@ describe('Sidebar', () => {
     const onFileSelect = vi.fn();
     render(<Sidebar files={mockFiles} onFileSelect={onFileSelect} />);
 
-    fireEvent.click(screen.getByText('app.ts'));
+    fireEvent.click(screen.getByText('src/app.ts'));
 
     expect(onFileSelect).toHaveBeenCalledWith('src/app.ts');
   });
@@ -82,5 +82,25 @@ describe('Sidebar', () => {
 
     const selectedButton = container.querySelector('.bg-blue-50');
     expect(selectedButton).toBeDefined();
+  });
+
+  it('filters files by path', () => {
+    render(<Sidebar files={mockFiles} onFileSelect={() => {}} />);
+
+    const filterInput = screen.getByPlaceholderText('Filter files...');
+    fireEvent.change(filterInput, { target: { value: 'app' } });
+
+    expect(screen.getByText('src/app.ts')).toBeDefined();
+    expect(screen.queryByText('src/utils.ts')).toBeNull();
+    expect(screen.queryByText('src/old.ts')).toBeNull();
+  });
+
+  it('shows no matching files message when filter has no results', () => {
+    render(<Sidebar files={mockFiles} onFileSelect={() => {}} />);
+
+    const filterInput = screen.getByPlaceholderText('Filter files...');
+    fireEvent.change(filterInput, { target: { value: 'nonexistent' } });
+
+    expect(screen.getByText('No matching files')).toBeDefined();
   });
 });

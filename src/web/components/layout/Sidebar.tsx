@@ -120,8 +120,8 @@ export function Sidebar({ files, selectedFile, onFileSelect, selectedIndex }: Si
                 <span className={cn('font-mono text-xs', getStatusColor(file.status))}>
                   {getStatusLabel(file.status)}
                 </span>
-                <span className="truncate flex-1" title={path}>
-                  {path.split('/').pop()}
+                <span className="truncate flex-1 font-mono" title={path}>
+                  {path}
                 </span>
                 <span className="text-xs text-gray-400">
                   <span className="text-green-600">+{file.additions}</span>

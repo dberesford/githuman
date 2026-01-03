@@ -2,6 +2,7 @@
  * Comment API routes
  */
 import type { FastifyPluginAsync } from 'fastify';
+import { Type } from '@fastify/type-provider-typebox';
 import { getDatabase } from '../db/index.ts';
 import {
   CommentService,
@@ -13,6 +14,77 @@ import type {
   CreateCommentRequest,
   UpdateCommentRequest,
 } from '../../shared/types.ts';
+import { ErrorSchema, SuccessSchema } from '../schemas/common.ts';
+
+const CommentSchema = Type.Object(
+  {
+    id: Type.String({ description: 'Unique identifier' }),
+    reviewId: Type.String({ description: 'Associated review ID' }),
+    filePath: Type.String({ description: 'File path' }),
+    lineNumber: Type.Union([Type.Integer(), Type.Null()], {
+      description: 'Line number (null for file-level comments)',
+    }),
+    lineType: Type.Union(
+      [Type.Literal('added'), Type.Literal('removed'), Type.Literal('context'), Type.Null()],
+      { description: 'Line type' }
+    ),
+    content: Type.String({ description: 'Comment content' }),
+    suggestion: Type.Union([Type.String(), Type.Null()], {
+      description: 'Code suggestion',
+    }),
+    resolved: Type.Boolean({ description: 'Resolution status' }),
+    createdAt: Type.String({ format: 'date-time', description: 'Creation timestamp' }),
+    updatedAt: Type.String({ format: 'date-time', description: 'Last update timestamp' }),
+  },
+  { description: 'Comment' }
+);
+
+const CommentsArraySchema = Type.Array(CommentSchema, {
+  description: 'List of comments',
+});
+
+const CreateCommentSchema = Type.Object(
+  {
+    filePath: Type.String({ description: 'File path' }),
+    lineNumber: Type.Optional(Type.Integer({ description: 'Line number' })),
+    lineType: Type.Optional(
+      Type.Union([Type.Literal('added'), Type.Literal('removed'), Type.Literal('context')])
+    ),
+    content: Type.String({ minLength: 1, description: 'Comment content' }),
+    suggestion: Type.Optional(Type.String({ description: 'Code suggestion' })),
+  },
+  { description: 'Create comment request' }
+);
+
+const UpdateCommentSchema = Type.Object(
+  {
+    content: Type.Optional(Type.String({ minLength: 1, description: 'Updated content' })),
+    suggestion: Type.Optional(Type.String({ description: 'Updated suggestion' })),
+  },
+  { description: 'Update comment request' }
+);
+
+const ReviewIdParamsSchema = Type.Object({
+  reviewId: Type.String({ description: 'Review ID' }),
+});
+
+const CommentIdParamsSchema = Type.Object({
+  id: Type.String({ description: 'Comment ID' }),
+});
+
+const FileQuerystringSchema = Type.Object({
+  filePath: Type.Optional(Type.String({ description: 'Filter by file path' })),
+});
+
+const CommentStatsSchema = Type.Object(
+  {
+    total: Type.Integer({ description: 'Total comments' }),
+    resolved: Type.Integer({ description: 'Resolved comments' }),
+    unresolved: Type.Integer({ description: 'Unresolved comments' }),
+    withSuggestions: Type.Integer({ description: 'Comments with suggestions' }),
+  },
+  { description: 'Comment statistics' }
+);
 
 interface ReviewParams {
   reviewId: string;
@@ -40,7 +112,18 @@ const commentRoutes: FastifyPluginAsync = async (fastify) => {
     Params: ReviewParams;
     Querystring: FileQuerystring;
     Reply: Comment[] | { error: string };
-  }>('/api/reviews/:reviewId/comments', async (request, reply) => {
+  }>('/api/reviews/:reviewId/comments', {
+    schema: {
+      tags: ['comments'],
+      summary: 'List comments for a review',
+      description: 'Retrieve all comments for a review, optionally filtered by file path',
+      params: ReviewIdParamsSchema,
+      querystring: FileQuerystringSchema,
+      response: {
+        200: CommentsArraySchema,
+      },
+    },
+  }, async (request, reply) => {
     const service = getService();
     const { reviewId } = request.params;
     const { filePath } = request.query;
@@ -59,7 +142,17 @@ const commentRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
     Params: ReviewParams;
     Reply: CommentStats;
-  }>('/api/reviews/:reviewId/comments/stats', async (request) => {
+  }>('/api/reviews/:reviewId/comments/stats', {
+    schema: {
+      tags: ['comments'],
+      summary: 'Get comment statistics',
+      description: 'Get comment counts and breakdown for a review',
+      params: ReviewIdParamsSchema,
+      response: {
+        200: CommentStatsSchema,
+      },
+    },
+  }, async (request) => {
     const service = getService();
     return service.getStats(request.params.reviewId);
   });
@@ -72,7 +165,20 @@ const commentRoutes: FastifyPluginAsync = async (fastify) => {
     Params: ReviewParams;
     Body: CreateCommentRequest;
     Reply: Comment | { error: string; code: string };
-  }>('/api/reviews/:reviewId/comments', async (request, reply) => {
+  }>('/api/reviews/:reviewId/comments', {
+    schema: {
+      tags: ['comments'],
+      summary: 'Add a comment',
+      description: 'Add a comment to a review, optionally on a specific line',
+      params: ReviewIdParamsSchema,
+      body: CreateCommentSchema,
+      response: {
+        201: CommentSchema,
+        400: ErrorSchema,
+        404: ErrorSchema,
+      },
+    },
+  }, async (request, reply) => {
     const service = getService();
 
     try {
@@ -98,7 +204,18 @@ const commentRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
     Params: CommentParams;
     Reply: Comment | { error: string };
-  }>('/api/comments/:id', async (request, reply) => {
+  }>('/api/comments/:id', {
+    schema: {
+      tags: ['comments'],
+      summary: 'Get a comment by ID',
+      description: 'Retrieve a specific comment by its unique identifier',
+      params: CommentIdParamsSchema,
+      response: {
+        200: CommentSchema,
+        404: ErrorSchema,
+      },
+    },
+  }, async (request, reply) => {
     const service = getService();
     const comment = service.getById(request.params.id);
 
@@ -119,7 +236,19 @@ const commentRoutes: FastifyPluginAsync = async (fastify) => {
     Params: CommentParams;
     Body: UpdateCommentRequest;
     Reply: Comment | { error: string };
-  }>('/api/comments/:id', async (request, reply) => {
+  }>('/api/comments/:id', {
+    schema: {
+      tags: ['comments'],
+      summary: 'Update a comment',
+      description: 'Update the content or suggestion of a comment',
+      params: CommentIdParamsSchema,
+      body: UpdateCommentSchema,
+      response: {
+        200: CommentSchema,
+        404: ErrorSchema,
+      },
+    },
+  }, async (request, reply) => {
     const service = getService();
     const comment = service.update(request.params.id, request.body);
 
@@ -139,7 +268,18 @@ const commentRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.delete<{
     Params: CommentParams;
     Reply: { success: boolean } | { error: string };
-  }>('/api/comments/:id', async (request, reply) => {
+  }>('/api/comments/:id', {
+    schema: {
+      tags: ['comments'],
+      summary: 'Delete a comment',
+      description: 'Permanently delete a comment',
+      params: CommentIdParamsSchema,
+      response: {
+        200: SuccessSchema,
+        404: ErrorSchema,
+      },
+    },
+  }, async (request, reply) => {
     const service = getService();
     const deleted = service.delete(request.params.id);
 
@@ -159,7 +299,18 @@ const commentRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
     Params: CommentParams;
     Reply: Comment | { error: string };
-  }>('/api/comments/:id/resolve', async (request, reply) => {
+  }>('/api/comments/:id/resolve', {
+    schema: {
+      tags: ['comments'],
+      summary: 'Resolve a comment',
+      description: 'Mark a comment as resolved',
+      params: CommentIdParamsSchema,
+      response: {
+        200: CommentSchema,
+        404: ErrorSchema,
+      },
+    },
+  }, async (request, reply) => {
     const service = getService();
     const comment = service.resolve(request.params.id);
 
@@ -179,7 +330,18 @@ const commentRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
     Params: CommentParams;
     Reply: Comment | { error: string };
-  }>('/api/comments/:id/unresolve', async (request, reply) => {
+  }>('/api/comments/:id/unresolve', {
+    schema: {
+      tags: ['comments'],
+      summary: 'Unresolve a comment',
+      description: 'Mark a comment as unresolved',
+      params: CommentIdParamsSchema,
+      response: {
+        200: CommentSchema,
+        404: ErrorSchema,
+      },
+    },
+  }, async (request, reply) => {
     const service = getService();
     const comment = service.unresolve(request.params.id);
 

@@ -2,7 +2,10 @@
  * Fastify application factory
  */
 import Fastify, { type FastifyInstance } from 'fastify';
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { fastifyRequestContext, requestContext } from '@fastify/request-context';
+import fastifySwagger from '@fastify/swagger';
+import fastifySwaggerUi from '@fastify/swagger-ui';
 import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { existsSync } from 'node:fs';
@@ -16,6 +19,7 @@ import todoRoutes from './routes/todos.ts';
 import gitRoutes from './routes/git.ts';
 import type { ServerConfig } from './config.ts';
 import type { HealthResponse } from '../shared/types.ts';
+import { HealthResponseSchema } from './schemas/common.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -46,7 +50,7 @@ export async function buildApp(
 ): Promise<FastifyInstance> {
   const app = Fastify({
     logger: getLoggerConfig(options.logger ?? true),
-  });
+  }).withTypeProvider<TypeBoxTypeProvider>();
 
   // Register request context plugin
   await app.register(fastifyRequestContext);
@@ -55,6 +59,51 @@ export async function buildApp(
   app.addHook('onRequest', (request, _reply, done) => {
     request.requestContext.set('log', request.log);
     done();
+  });
+
+  // Register Swagger for OpenAPI documentation
+  await app.register(fastifySwagger, {
+    openapi: {
+      openapi: '3.1.0',
+      info: {
+        title: 'Local Code Reviewer API',
+        description: 'API for local code review with diff viewing, comments, and todos',
+        version: '0.1.0',
+      },
+      tags: [
+        { name: 'health', description: 'Health check endpoints' },
+        { name: 'todos', description: 'Todo management' },
+        { name: 'reviews', description: 'Code review management' },
+        { name: 'comments', description: 'Review comments' },
+        { name: 'diff', description: 'Git diff operations' },
+        { name: 'git', description: 'Git repository information' },
+      ],
+      servers: [
+        {
+          url: `http://${config.host}:${config.port}`,
+          description: 'Local development server',
+        },
+      ],
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            description: 'Optional Bearer token authentication. Set via CODE_REVIEW_TOKEN env var or --token flag.',
+          },
+        },
+      },
+      security: config.authToken ? [{ bearerAuth: [] }] : [],
+    },
+  });
+
+  // Register Swagger UI
+  await app.register(fastifySwaggerUi, {
+    routePrefix: '/docs',
+    uiConfig: {
+      docExpansion: 'list',
+      deepLinking: true,
+    },
   });
 
   // Register CORS for development
@@ -68,7 +117,16 @@ export async function buildApp(
   });
 
   // Health check endpoint
-  app.get<{ Reply: HealthResponse }>('/api/health', async () => {
+  app.get<{ Reply: HealthResponse }>('/api/health', {
+    schema: {
+      tags: ['health'],
+      summary: 'Health check',
+      description: 'Check if the server is running and authentication status',
+      response: {
+        200: HealthResponseSchema,
+      },
+    },
+  }, async () => {
     return {
       status: 'ok',
       authRequired: app.authEnabled,

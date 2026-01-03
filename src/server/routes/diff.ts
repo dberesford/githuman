@@ -2,9 +2,127 @@
  * Diff API routes
  */
 import type { FastifyPluginAsync } from 'fastify';
+import { Type } from '@fastify/type-provider-typebox';
 import { GitService } from '../services/git.service.ts';
 import { parseDiff, getDiffSummary } from '../services/diff.service.ts';
 import type { DiffFile, RepositoryInfo } from '../../shared/types.ts';
+import { ErrorSchema } from '../schemas/common.ts';
+
+const DiffLineSchema = Type.Object({
+  type: Type.Union([Type.Literal('added'), Type.Literal('removed'), Type.Literal('context')]),
+  content: Type.String(),
+  oldLineNumber: Type.Union([Type.Integer(), Type.Null()]),
+  newLineNumber: Type.Union([Type.Integer(), Type.Null()]),
+});
+
+const DiffHunkSchema = Type.Object({
+  oldStart: Type.Integer(),
+  oldLines: Type.Integer(),
+  newStart: Type.Integer(),
+  newLines: Type.Integer(),
+  lines: Type.Array(DiffLineSchema),
+});
+
+const DiffFileSchema = Type.Object(
+  {
+    oldPath: Type.String({ description: 'Original file path' }),
+    newPath: Type.String({ description: 'New file path' }),
+    status: Type.Union([
+      Type.Literal('added'),
+      Type.Literal('modified'),
+      Type.Literal('deleted'),
+      Type.Literal('renamed'),
+    ]),
+    additions: Type.Integer({ description: 'Number of lines added' }),
+    deletions: Type.Integer({ description: 'Number of lines deleted' }),
+    hunks: Type.Array(DiffHunkSchema),
+  },
+  { description: 'Diff file' }
+);
+
+const DiffSummarySchema = Type.Object(
+  {
+    totalFiles: Type.Integer({ description: 'Total number of files' }),
+    totalAdditions: Type.Integer({ description: 'Total lines added' }),
+    totalDeletions: Type.Integer({ description: 'Total lines deleted' }),
+    filesAdded: Type.Integer({ description: 'Number of files added' }),
+    filesModified: Type.Integer({ description: 'Number of files modified' }),
+    filesDeleted: Type.Integer({ description: 'Number of files deleted' }),
+    filesRenamed: Type.Integer({ description: 'Number of files renamed' }),
+  },
+  { description: 'Diff summary statistics' }
+);
+
+const RepositoryInfoSchema = Type.Object(
+  {
+    name: Type.String({ description: 'Repository name' }),
+    branch: Type.String({ description: 'Current branch' }),
+    remote: Type.Union([Type.String(), Type.Null()], { description: 'Remote URL' }),
+    path: Type.String({ description: 'Repository path' }),
+  },
+  { description: 'Repository information' }
+);
+
+const StagedDiffResponseSchema = Type.Object(
+  {
+    files: Type.Array(DiffFileSchema),
+    summary: DiffSummarySchema,
+    repository: RepositoryInfoSchema,
+  },
+  { description: 'Staged diff response' }
+);
+
+const StagedFileSchema = Type.Object({
+  path: Type.String({ description: 'File path' }),
+  oldPath: Type.Optional(Type.String({ description: 'Original path for renames' })),
+  status: Type.Union([
+    Type.Literal('added'),
+    Type.Literal('modified'),
+    Type.Literal('deleted'),
+    Type.Literal('renamed'),
+  ]),
+  additions: Type.Integer({ description: 'Lines added' }),
+  deletions: Type.Integer({ description: 'Lines deleted' }),
+});
+
+const StagedFilesResponseSchema = Type.Object(
+  {
+    files: Type.Array(StagedFileSchema),
+    hasStagedChanges: Type.Boolean({ description: 'Whether there are staged changes' }),
+  },
+  { description: 'Staged files response' }
+);
+
+const RepositoryInfoExtendedSchema = Type.Intersect([
+  RepositoryInfoSchema,
+  Type.Object({
+    hasCommits: Type.Boolean({ description: 'Whether repository has commits' }),
+  }),
+]);
+
+const FileVersionQuerystringSchema = Type.Object({
+  version: Type.Optional(
+    Type.Union([Type.Literal('staged'), Type.Literal('head')], {
+      default: 'staged',
+      description: 'File version to retrieve',
+    })
+  ),
+});
+
+const FileContentResponseSchema = Type.Object(
+  {
+    path: Type.String({ description: 'File path' }),
+    version: Type.Union([Type.Literal('staged'), Type.Literal('head')]),
+    content: Type.String({ description: 'File content' }),
+    lines: Type.Array(Type.String(), { description: 'Lines array' }),
+    lineCount: Type.Integer({ description: 'Number of lines' }),
+  },
+  { description: 'File content response' }
+);
+
+const WildcardParamsSchema = Type.Object({
+  '*': Type.String({ description: 'File path' }),
+});
 
 interface StagedDiffResponse {
   files: DiffFile[];
@@ -38,6 +156,17 @@ const diffRoutes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get<{ Reply: StagedDiffResponse | { error: string; code?: string } }>(
     '/api/diff/staged',
+    {
+      schema: {
+        tags: ['diff'],
+        summary: 'Get staged diff',
+        description: 'Returns parsed diff data for all staged changes in the repository',
+        response: {
+          200: StagedDiffResponseSchema,
+          400: ErrorSchema,
+        },
+      },
+    },
     async (request, reply) => {
       const gitService = new GitService(fastify.config.repositoryPath);
 
@@ -95,6 +224,17 @@ const diffRoutes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get<{ Reply: StagedFilesResponse | { error: string } }>(
     '/api/diff/files',
+    {
+      schema: {
+        tags: ['diff'],
+        summary: 'Get staged files list',
+        description: 'Returns list of staged files with addition/deletion stats',
+        response: {
+          200: StagedFilesResponseSchema,
+          400: ErrorSchema,
+        },
+      },
+    },
     async (request, reply) => {
       const gitService = new GitService(fastify.config.repositoryPath);
 
@@ -143,6 +283,17 @@ const diffRoutes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get<{ Reply: (RepositoryInfo & { hasCommits: boolean }) | { error: string; code?: string } }>(
     '/api/info',
+    {
+      schema: {
+        tags: ['git'],
+        summary: 'Get repository info',
+        description: 'Returns basic information about the current repository',
+        response: {
+          200: RepositoryInfoExtendedSchema,
+          400: ErrorSchema,
+        },
+      },
+    },
     async (request, reply) => {
       const gitService = new GitService(fastify.config.repositoryPath);
 
@@ -176,6 +327,20 @@ const diffRoutes: FastifyPluginAsync = async (fastify) => {
     Reply: FileContentResponse | { error: string };
   }>(
     '/api/diff/file/*',
+    {
+      schema: {
+        tags: ['diff'],
+        summary: 'Get file content',
+        description: 'Returns the full content of a file from either the staged version or HEAD',
+        params: WildcardParamsSchema,
+        querystring: FileVersionQuerystringSchema,
+        response: {
+          200: FileContentResponseSchema,
+          400: ErrorSchema,
+          404: ErrorSchema,
+        },
+      },
+    },
     async (request, reply) => {
       const filePath = request.params['*'];
       const version = request.query.version ?? 'staged';
@@ -248,6 +413,15 @@ const imageRoute: FastifyPluginAsync = async (fastify) => {
     Querystring: { version?: 'staged' | 'head' };
   }>(
     '/api/diff/image/*',
+    {
+      schema: {
+        tags: ['diff'],
+        summary: 'Get image content',
+        description: 'Returns raw image content from either the staged version or HEAD',
+        params: WildcardParamsSchema,
+        querystring: FileVersionQuerystringSchema,
+      },
+    },
     async (request, reply) => {
       const filePath = request.params['*'];
       const version = request.query.version ?? 'staged';

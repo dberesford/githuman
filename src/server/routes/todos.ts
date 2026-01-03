@@ -2,10 +2,94 @@
  * Todo API routes
  */
 import type { FastifyPluginAsync } from 'fastify';
+import { Type } from '@fastify/type-provider-typebox';
 import { randomUUID } from 'node:crypto';
 import { getDatabase } from '../db/index.ts';
 import { TodoRepository } from '../repositories/todo.repo.ts';
 import type { Todo, CreateTodoRequest, UpdateTodoRequest } from '../../shared/types.ts';
+import { ErrorSchema, SuccessSchema } from '../schemas/common.ts';
+
+const TodoSchema = Type.Object(
+  {
+    id: Type.String({ description: 'Unique identifier' }),
+    content: Type.String({ description: 'Todo content' }),
+    completed: Type.Boolean({ description: 'Completion status' }),
+    reviewId: Type.Union([Type.String(), Type.Null()], {
+      description: 'Associated review ID (null for global todos)',
+    }),
+    position: Type.Integer({ description: 'Display order position' }),
+    createdAt: Type.String({ format: 'date-time', description: 'Creation timestamp' }),
+    updatedAt: Type.String({ format: 'date-time', description: 'Last update timestamp' }),
+  },
+  { description: 'Todo item' }
+);
+
+const TodosArraySchema = Type.Array(TodoSchema, { description: 'List of todos' });
+
+const CreateTodoSchema = Type.Object(
+  {
+    content: Type.String({ minLength: 1, description: 'Todo content' }),
+    reviewId: Type.Optional(Type.String({ description: 'Associated review ID' })),
+  },
+  { description: 'Create todo request' }
+);
+
+const UpdateTodoSchema = Type.Object(
+  {
+    content: Type.Optional(Type.String({ minLength: 1, description: 'Updated content' })),
+    completed: Type.Optional(Type.Boolean({ description: 'Updated completion status' })),
+  },
+  { description: 'Update todo request' }
+);
+
+const TodoQuerystringSchema = Type.Object(
+  {
+    reviewId: Type.Optional(Type.String({ description: 'Filter by review ID' })),
+    completed: Type.Optional(Type.String({ description: 'Filter by completion status (1, true, 0, false)' })),
+  },
+  { description: 'Todo list filters' }
+);
+
+const TodoStatsSchema = Type.Object(
+  {
+    total: Type.Integer({ description: 'Total number of todos' }),
+    completed: Type.Integer({ description: 'Number of completed todos' }),
+    pending: Type.Integer({ description: 'Number of pending todos' }),
+  },
+  { description: 'Todo statistics' }
+);
+
+const IdParamsSchema = Type.Object({
+  id: Type.String({ description: 'Todo ID (UUID)' }),
+});
+
+const ReorderTodosSchema = Type.Object(
+  {
+    orderedIds: Type.Array(Type.String(), { description: 'Array of todo IDs in desired order' }),
+  },
+  { description: 'Reorder todos request' }
+);
+
+const ReorderResultSchema = Type.Object(
+  {
+    updated: Type.Integer({ description: 'Number of todos updated' }),
+  },
+  { description: 'Reorder result' }
+);
+
+const MoveTodoSchema = Type.Object(
+  {
+    position: Type.Integer({ minimum: 0, description: 'New position for the todo' }),
+  },
+  { description: 'Move todo request' }
+);
+
+const DeletedCountSchema = Type.Object(
+  {
+    deleted: Type.Integer({ description: 'Number of items deleted' }),
+  },
+  { description: 'Deleted count response' }
+);
 
 interface TodoParams {
   id: string;
@@ -35,7 +119,17 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
     Querystring: TodoQuerystring;
     Reply: Todo[];
-  }>('/api/todos', async (request) => {
+  }>('/api/todos', {
+    schema: {
+      tags: ['todos'],
+      summary: 'List all todos',
+      description: 'Retrieve all todos with optional filtering by review ID or completion status',
+      querystring: TodoQuerystringSchema,
+      response: {
+        200: TodosArraySchema,
+      },
+    },
+  }, async (request) => {
     const repo = getRepo();
     const { reviewId, completed } = request.query;
 
@@ -60,7 +154,16 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.get<{
     Reply: TodoStats;
-  }>('/api/todos/stats', async () => {
+  }>('/api/todos/stats', {
+    schema: {
+      tags: ['todos'],
+      summary: 'Get todo statistics',
+      description: 'Get counts of total, completed, and pending todos',
+      response: {
+        200: TodoStatsSchema,
+      },
+    },
+  }, async () => {
     const repo = getRepo();
     return {
       total: repo.countAll(),
@@ -76,7 +179,17 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
     Body: CreateTodoRequest;
     Reply: Todo;
-  }>('/api/todos', async (request, reply) => {
+  }>('/api/todos', {
+    schema: {
+      tags: ['todos'],
+      summary: 'Create a new todo',
+      description: 'Create a new todo item, optionally associated with a review',
+      body: CreateTodoSchema,
+      response: {
+        201: TodoSchema,
+      },
+    },
+  }, async (request, reply) => {
     const repo = getRepo();
     const { content, reviewId } = request.body;
 
@@ -98,7 +211,18 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
     Params: TodoParams;
     Reply: Todo | { error: string };
-  }>('/api/todos/:id', async (request, reply) => {
+  }>('/api/todos/:id', {
+    schema: {
+      tags: ['todos'],
+      summary: 'Get a todo by ID',
+      description: 'Retrieve a specific todo by its unique identifier',
+      params: IdParamsSchema,
+      response: {
+        200: TodoSchema,
+        404: ErrorSchema,
+      },
+    },
+  }, async (request, reply) => {
     const repo = getRepo();
     const todo = repo.findById(request.params.id);
 
@@ -119,7 +243,19 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
     Params: TodoParams;
     Body: UpdateTodoRequest;
     Reply: Todo | { error: string };
-  }>('/api/todos/:id', async (request, reply) => {
+  }>('/api/todos/:id', {
+    schema: {
+      tags: ['todos'],
+      summary: 'Update a todo',
+      description: 'Update the content or completion status of a todo',
+      params: IdParamsSchema,
+      body: UpdateTodoSchema,
+      response: {
+        200: TodoSchema,
+        404: ErrorSchema,
+      },
+    },
+  }, async (request, reply) => {
     const repo = getRepo();
     const todo = repo.update(request.params.id, request.body);
 
@@ -139,7 +275,18 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.delete<{
     Params: TodoParams;
     Reply: { success: boolean } | { error: string };
-  }>('/api/todos/:id', async (request, reply) => {
+  }>('/api/todos/:id', {
+    schema: {
+      tags: ['todos'],
+      summary: 'Delete a todo',
+      description: 'Permanently delete a todo by its ID',
+      params: IdParamsSchema,
+      response: {
+        200: SuccessSchema,
+        404: ErrorSchema,
+      },
+    },
+  }, async (request, reply) => {
     const repo = getRepo();
     const deleted = repo.delete(request.params.id);
 
@@ -159,7 +306,18 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
     Params: TodoParams;
     Reply: Todo | { error: string };
-  }>('/api/todos/:id/toggle', async (request, reply) => {
+  }>('/api/todos/:id/toggle', {
+    schema: {
+      tags: ['todos'],
+      summary: 'Toggle todo completion',
+      description: 'Toggle the completed status of a todo',
+      params: IdParamsSchema,
+      response: {
+        200: TodoSchema,
+        404: ErrorSchema,
+      },
+    },
+  }, async (request, reply) => {
     const repo = getRepo();
     const todo = repo.toggle(request.params.id);
 
@@ -178,7 +336,16 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.delete<{
     Reply: { deleted: number };
-  }>('/api/todos/completed', async () => {
+  }>('/api/todos/completed', {
+    schema: {
+      tags: ['todos'],
+      summary: 'Delete completed todos',
+      description: 'Delete all todos that have been marked as completed',
+      response: {
+        200: DeletedCountSchema,
+      },
+    },
+  }, async () => {
     const repo = getRepo();
     const count = repo.deleteCompleted();
     return { deleted: count };
@@ -191,7 +358,17 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
     Body: { orderedIds: string[] };
     Reply: { updated: number };
-  }>('/api/todos/reorder', async (request) => {
+  }>('/api/todos/reorder', {
+    schema: {
+      tags: ['todos'],
+      summary: 'Reorder todos',
+      description: 'Reorder todos by providing an array of todo IDs in the desired order',
+      body: ReorderTodosSchema,
+      response: {
+        200: ReorderResultSchema,
+      },
+    },
+  }, async (request) => {
     const repo = getRepo();
     const { orderedIds } = request.body;
     const updated = repo.reorder(orderedIds);
@@ -206,7 +383,19 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
     Params: TodoParams;
     Body: { position: number };
     Reply: Todo | { error: string };
-  }>('/api/todos/:id/move', async (request, reply) => {
+  }>('/api/todos/:id/move', {
+    schema: {
+      tags: ['todos'],
+      summary: 'Move a todo',
+      description: 'Move a single todo to a new position in the list',
+      params: IdParamsSchema,
+      body: MoveTodoSchema,
+      response: {
+        200: TodoSchema,
+        404: ErrorSchema,
+      },
+    },
+  }, async (request, reply) => {
     const repo = getRepo();
     const { position } = request.body;
     const todo = repo.move(request.params.id, position);

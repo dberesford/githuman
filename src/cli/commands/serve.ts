@@ -7,7 +7,7 @@ import { startServer, createConfig } from '../../server/index.ts';
 
 function printHelp() {
   console.log(`
-Usage: code-review serve [options]
+Usage: githuman serve [options]
 
 Start the review server and open web interface.
 

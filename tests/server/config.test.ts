@@ -11,7 +11,7 @@ describe('config', () => {
       assert.strictEqual(config.host, 'localhost');
       assert.strictEqual(config.authToken, null);
       assert.strictEqual(config.repositoryPath, process.cwd());
-      assert.strictEqual(config.dbPath, `${process.cwd()}/.code-review/reviews.db`);
+      assert.strictEqual(config.dbPath, `${process.cwd()}/.githuman/reviews.db`);
     });
 
     it('should allow overriding port', () => {
@@ -32,7 +32,7 @@ describe('config', () => {
     it('should allow overriding repository path', () => {
       const config = createConfig({ repositoryPath: '/custom/path' });
       assert.strictEqual(config.repositoryPath, '/custom/path');
-      assert.strictEqual(config.dbPath, '/custom/path/.code-review/reviews.db');
+      assert.strictEqual(config.dbPath, '/custom/path/.githuman/reviews.db');
     });
 
     it('should allow overriding db path', () => {
@@ -40,18 +40,18 @@ describe('config', () => {
       assert.strictEqual(config.dbPath, '/custom/db.sqlite');
     });
 
-    describe('with CODE_REVIEW_TOKEN env var', () => {
-      const originalEnv = process.env.CODE_REVIEW_TOKEN;
+    describe('with GITHUMAN_TOKEN env var', () => {
+      const originalEnv = process.env.GITHUMAN_TOKEN;
 
       before(() => {
-        process.env.CODE_REVIEW_TOKEN = 'env-token';
+        process.env.GITHUMAN_TOKEN = 'env-token';
       });
 
       after(() => {
         if (originalEnv === undefined) {
-          delete process.env.CODE_REVIEW_TOKEN;
+          delete process.env.GITHUMAN_TOKEN;
         } else {
-          process.env.CODE_REVIEW_TOKEN = originalEnv;
+          process.env.GITHUMAN_TOKEN = originalEnv;
         }
       });
 

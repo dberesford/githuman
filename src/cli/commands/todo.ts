@@ -9,7 +9,7 @@ import { TodoRepository } from '../../server/repositories/todo.repo.ts';
 
 function printHelp() {
   console.log(`
-Usage: code-review todo <subcommand> [options]
+Usage: githuman todo <subcommand> [options]
 
 Manage todo items for tracking tasks during review.
 
@@ -30,13 +30,13 @@ Options:
   -h, --help             Show this help message
 
 Examples:
-  code-review todo add "Fix the type error in utils.ts"
-  code-review todo list                    # Shows pending todos
-  code-review todo list --done             # Shows completed todos
-  code-review todo list --all              # Shows all todos
-  code-review todo done abc123
-  code-review todo move abc123 0           # Move to top
-  code-review todo clear --done
+  githuman todo add "Fix the type error in utils.ts"
+  githuman todo list                    # Shows pending todos
+  githuman todo list --done             # Shows completed todos
+  githuman todo list --all              # Shows all todos
+  githuman todo done abc123
+  githuman todo move abc123 0           # Move to top
+  githuman todo clear --done
 `);
 }
 
@@ -71,7 +71,7 @@ export async function todoCommand(args: string[]) {
         const content = positionals.slice(1).join(' ');
         if (!content) {
           console.error('Error: Todo content is required');
-          console.error('Usage: code-review todo add <content>');
+          console.error('Usage: githuman todo add <content>');
           process.exit(1);
         }
 
@@ -137,7 +137,7 @@ export async function todoCommand(args: string[]) {
         const id = positionals[1];
         if (!id) {
           console.error('Error: Todo ID is required');
-          console.error('Usage: code-review todo done <id>');
+          console.error('Usage: githuman todo done <id>');
           process.exit(1);
         }
 
@@ -160,7 +160,7 @@ export async function todoCommand(args: string[]) {
         const id = positionals[1];
         if (!id) {
           console.error('Error: Todo ID is required');
-          console.error('Usage: code-review todo undone <id>');
+          console.error('Usage: githuman todo undone <id>');
           process.exit(1);
         }
 
@@ -184,7 +184,7 @@ export async function todoCommand(args: string[]) {
         const posStr = positionals[2];
         if (!id || posStr === undefined) {
           console.error('Error: Todo ID and position are required');
-          console.error('Usage: code-review todo move <id> <position>');
+          console.error('Usage: githuman todo move <id> <position>');
           process.exit(1);
         }
 
@@ -213,7 +213,7 @@ export async function todoCommand(args: string[]) {
         const id = positionals[1];
         if (!id) {
           console.error('Error: Todo ID is required');
-          console.error('Usage: code-review todo remove <id>');
+          console.error('Usage: githuman todo remove <id>');
           process.exit(1);
         }
 
@@ -242,7 +242,7 @@ export async function todoCommand(args: string[]) {
           }
         } else {
           console.error('Error: --done flag is required to clear todos');
-          console.error('Usage: code-review todo clear --done');
+          console.error('Usage: githuman todo clear --done');
           process.exit(1);
         }
         break;
@@ -264,7 +264,7 @@ export async function todoCommand(args: string[]) {
           console.log('No todos found.');
         }
       } else {
-        console.error('Error: Database does not exist yet. Run "code-review serve" first.');
+        console.error('Error: Database does not exist yet. Run "githuman serve" first.');
         process.exit(1);
       }
     } else {

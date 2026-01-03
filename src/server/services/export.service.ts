@@ -189,7 +189,7 @@ export class ExportService {
     // Footer
     lines.push('---');
     lines.push('');
-    lines.push(`*Exported from local-code-reviewer on ${formatDate(new Date().toISOString())}*`);
+    lines.push(`*Exported from GitHuman on ${formatDate(new Date().toISOString())}*`);
 
     return lines.join('\n');
   }

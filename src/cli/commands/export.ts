@@ -9,7 +9,7 @@ import { ExportService } from '../../server/services/export.service.ts';
 
 function printHelp() {
   console.log(`
-Usage: code-review export <review-id|last> [options]
+Usage: githuman export <review-id|last> [options]
 
 Export a review to markdown format.
 

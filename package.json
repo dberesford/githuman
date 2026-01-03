@@ -1,10 +1,10 @@
 {
-  "name": "local-code-reviewer",
+  "name": "githuman",
   "version": "0.1.0",
-  "description": "Local CLI tool for code review with web interface",
+  "description": "Review AI agent code changes before commit",
   "type": "module",
   "bin": {
-    "code-review": "./dist/cli/index.js"
+    "githuman": "./dist/cli/index.js"
   },
   "files": [
     "dist/",
@@ -35,7 +35,10 @@
     "code-review",
     "git",
     "cli",
-    "diff"
+    "diff",
+    "ai",
+    "agent",
+    "staging"
   ],
   "license": "MIT",
   "dependencies": {

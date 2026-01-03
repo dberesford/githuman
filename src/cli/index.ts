@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Local Code Reviewer CLI
+ * GitHuman CLI - Review AI agent code changes before commit
  */
 
 // Suppress SQLite experimental warning
@@ -32,9 +32,9 @@ const command = positionals[0];
 
 function printHelp() {
   console.log(`
-Local Code Reviewer - Review staged changes locally
+GitHuman - Review AI agent code changes before commit
 
-Usage: code-review <command> [options]
+Usage: githuman <command> [options]
 
 Commands:
   serve     Start the review server and open web interface
@@ -46,12 +46,12 @@ Options:
   -h, --help      Show this help message
   -v, --version   Show version number
 
-Run 'code-review <command> --help' for command-specific help.
+Run 'githuman <command> --help' for command-specific help.
 `);
 }
 
 function printVersion() {
-  console.log('code-review v0.1.0');
+  console.log('githuman v0.1.0');
 }
 
 if (values.version && !command) {

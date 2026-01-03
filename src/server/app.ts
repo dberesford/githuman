@@ -66,8 +66,8 @@ export async function buildApp(
     openapi: {
       openapi: '3.1.0',
       info: {
-        title: 'Local Code Reviewer API',
-        description: 'API for local code review with diff viewing, comments, and todos',
+        title: 'GitHuman API',
+        description: 'API for reviewing AI agent code changes before commit',
         version: '0.1.0',
       },
       tags: [
@@ -89,7 +89,7 @@ export async function buildApp(
           bearerAuth: {
             type: 'http',
             scheme: 'bearer',
-            description: 'Optional Bearer token authentication. Set via CODE_REVIEW_TOKEN env var or --token flag.',
+            description: 'Optional Bearer token authentication. Set via GITHUMAN_TOKEN env var or --token flag.',
           },
         },
       },

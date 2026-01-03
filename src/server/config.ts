@@ -37,15 +37,15 @@ export function createConfig(options: Partial<ServerConfig> = {}): ServerConfig 
 
   // Priority for db path:
   // 1. Explicit option
-  // 2. CODE_REVIEW_DB_PATH environment variable
-  // 3. Default to .code-review/reviews.db in repository root
-  const defaultDbPath = `${repositoryPath}/.code-review/reviews.db`;
-  const dbPath = options.dbPath ?? process.env.CODE_REVIEW_DB_PATH ?? defaultDbPath;
+  // 2. GITHUMAN_DB_PATH environment variable
+  // 3. Default to .githuman/reviews.db in repository root
+  const defaultDbPath = `${repositoryPath}/.githuman/reviews.db`;
+  const dbPath = options.dbPath ?? process.env.GITHUMAN_DB_PATH ?? defaultDbPath;
 
   return {
     port: options.port ?? 3847,
     host: options.host ?? 'localhost',
-    authToken: options.authToken ?? process.env.CODE_REVIEW_TOKEN ?? null,
+    authToken: options.authToken ?? process.env.GITHUMAN_TOKEN ?? null,
     repositoryPath,
     dbPath,
   };

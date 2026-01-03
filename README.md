@@ -1,6 +1,18 @@
-# Local Code Reviewer
+# GitHuman
 
-A local CLI tool for reviewing staged git changes with a web interface. Review your code before committing, add comments and suggestions, and export reviews to markdown.
+**Review AI agent code changes before commit.**
+
+GitHub revolutionized how humans collaborate on code. GitHuman defines how humans review code written by AI.
+
+## The Problem
+
+AI coding agents write code. But the traditional PR workflow assumes humans are the authors. By the time AI-generated code reaches a pull request, you've already committed to the approach. Review happens too late.
+
+## The Solution
+
+GitHuman moves the review checkpoint to where it belongs: **the staging area**.
+
+Before `git commit`, you get a proper review interface—not a wall of terminal diff output. Add comments, track issues, and make informed decisions about what the AI produced.
 
 ## Screenshots
 
@@ -12,13 +24,13 @@ A local CLI tool for reviewing staged git changes with a web interface. Review y
 
 ## Features
 
-- **Web-based diff viewer** - Review staged changes in a clean, GitHub-like interface
+- **Visual diff review** - Review staged changes in a clean, GitHub-like interface
 - **Inline comments** - Add comments to specific lines with code suggestions
-- **Review management** - Save reviews, track status (in progress, approved, changes requested)
-- **Todo list** - Track tasks during reviews via CLI or web interface
-- **Markdown export** - Export reviews with comments to markdown files
-- **Keyboard shortcuts** - Navigate quickly with vim-style shortcuts
-- **Local & private** - Everything runs locally, no data leaves your machine
+- **Review workflow** - Track status: in progress, approved, or changes requested
+- **Todo tracking** - Create tasks for follow-up work via CLI or web interface
+- **Markdown export** - Export reviews with comments for documentation
+- **Keyboard shortcuts** - Navigate quickly with vim-style bindings
+- **Local & private** - Everything runs on your machine, no data leaves
 
 ## Requirements
 
@@ -27,38 +39,33 @@ A local CLI tool for reviewing staged git changes with a web interface. Review y
 ## Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/mcollina/local-code-reviewer.git
-cd local-code-reviewer
-
-# Install dependencies
-npm install
-
-# Build the web interface
-npm run build
-
-# Link the CLI globally (optional)
-npm link
+npm install -g githuman
 ```
 
-## Usage
-
-### Start the Review Server
+Or run directly:
 
 ```bash
-# From the project directory
-npm start
-
-# Or if globally linked
-code-review serve
+npx githuman serve
 ```
 
-This opens a web interface at `http://localhost:3847` showing your staged changes.
+## Quick Start
 
-#### Options
+```bash
+# Stage your changes (from AI agent or manual edits)
+git add .
 
+# Start the review interface
+githuman serve
 ```
-code-review serve [options]
+
+This opens a web interface at `http://localhost:3847` where you can review your staged changes before committing.
+
+## CLI Reference
+
+### Start Review Server
+
+```bash
+githuman serve [options]
 
 Options:
   -p, --port <port>    Port to listen on (default: 3847)
@@ -71,7 +78,7 @@ Options:
 ### List Reviews
 
 ```bash
-code-review list [options]
+githuman list [options]
 
 Options:
   --status <status>    Filter by status (in_progress|approved|changes_requested)
@@ -79,10 +86,10 @@ Options:
   -h, --help           Show help
 ```
 
-### Export a Review
+### Export Review
 
 ```bash
-code-review export <review-id|last> [options]
+githuman export <review-id|last> [options]
 
 Arguments:
   review-id            The ID of the review, or "last" for most recent
@@ -94,29 +101,14 @@ Options:
   -h, --help           Show help
 ```
 
-Examples:
-
-```bash
-# Export the last review to stdout
-code-review export last
-
-# Export to a file
-code-review export last -o review.md
-
-# Export without resolved comments
-code-review export last --no-resolved
-```
-
 ### Manage Todos
 
-Track tasks and action items during your review:
-
 ```bash
-code-review todo <subcommand> [options]
+githuman todo <subcommand> [options]
 
 Subcommands:
   add <content>     Add a new todo item
-  list              List all todos
+  list              List all todos (pending by default)
   done <id>         Mark todo as completed
   undone <id>       Mark todo as not completed
   remove <id>       Delete a todo
@@ -124,37 +116,30 @@ Subcommands:
 
 Options:
   --review <id>     Scope todo to a specific review
+  --all             Show all todos (not just pending)
   --done            Filter to show only completed todos
-  --pending         Filter to show only pending todos
   --json            Output as JSON
   -h, --help        Show help
 ```
 
-Examples:
+## Workflow
 
-```bash
-# Add a todo
-code-review todo add "Fix the type error in utils.ts"
-
-# List pending todos
-code-review todo list --pending
-
-# Mark a todo as done (use ID prefix)
-code-review todo done abc123
-
-# Clear all completed todos
-code-review todo clear --done
-```
+1. **AI agent makes changes** - Claude, Copilot, Cursor, or any tool stages code
+2. **Run `githuman serve`** - Opens the review interface
+3. **Review the diff** - See exactly what changed, file by file
+4. **Add comments** - Note issues, questions, or suggestions
+5. **Create todos** - Track follow-up work
+6. **Decide** - Approve and commit, or request changes from the agent
+7. **Export** - Optionally save the review as documentation
 
 ## Web Interface
 
 ### Creating a Review
 
 1. Stage your changes with `git add`
-2. Run `code-review serve`
+2. Run `githuman serve`
 3. Click "New Review" or navigate to Staged Changes
-4. Enter a title and optional description
-5. Click "Create Review"
+4. Click "Create Review"
 
 ### Adding Comments
 
@@ -172,43 +157,9 @@ code-review todo clear --done
 | `k` | Previous file |
 | `Esc` | Cancel / Close |
 
-### Review Status
-
-- **In Progress** - Review is ongoing
-- **Approved** - Changes look good
-- **Changes Requested** - Modifications needed
-
 ## API
 
-The server exposes a REST API at `/api`:
-
-### Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/health` | Health check |
-| GET | `/api/info` | Repository information |
-| GET | `/api/diff/staged` | Get staged diff |
-| GET | `/api/reviews` | List reviews |
-| POST | `/api/reviews` | Create review |
-| GET | `/api/reviews/:id` | Get review |
-| PATCH | `/api/reviews/:id` | Update review |
-| DELETE | `/api/reviews/:id` | Delete review |
-| GET | `/api/reviews/:id/export` | Export as markdown |
-| GET | `/api/reviews/:id/comments` | List comments |
-| POST | `/api/reviews/:id/comments` | Add comment |
-| PATCH | `/api/comments/:id` | Update comment |
-| DELETE | `/api/comments/:id` | Delete comment |
-| POST | `/api/comments/:id/resolve` | Resolve comment |
-| POST | `/api/comments/:id/unresolve` | Unresolve comment |
-| GET | `/api/todos` | List todos |
-| GET | `/api/todos/stats` | Get todo statistics |
-| POST | `/api/todos` | Create todo |
-| GET | `/api/todos/:id` | Get todo |
-| PATCH | `/api/todos/:id` | Update todo |
-| DELETE | `/api/todos/:id` | Delete todo |
-| POST | `/api/todos/:id/toggle` | Toggle todo completion |
-| DELETE | `/api/todos/completed` | Clear completed todos |
+The server exposes a REST API with OpenAPI documentation at `/docs`.
 
 ### Authentication
 
@@ -216,10 +167,10 @@ Set a token to require authentication:
 
 ```bash
 # Via CLI flag
-code-review serve --token mysecrettoken
+githuman serve --token mysecrettoken
 
 # Via environment variable
-CODE_REVIEW_TOKEN=mysecrettoken code-review serve
+GITHUMAN_TOKEN=mysecrettoken githuman serve
 ```
 
 Clients must include the token in the `Authorization` header:
@@ -228,9 +179,26 @@ Clients must include the token in the `Authorization` header:
 Authorization: Bearer mysecrettoken
 ```
 
+## Data Storage
+
+Reviews and comments are stored in a SQLite database at:
+
+```
+<repository>/.githuman/reviews.db
+```
+
+This directory is typically gitignored.
+
 ## Development
 
 ```bash
+# Clone the repository
+git clone https://github.com/mcollina/local-code-reviewer.git
+cd local-code-reviewer
+
+# Install dependencies
+npm install
+
 # Run server in watch mode
 npm run dev:server
 
@@ -239,33 +207,17 @@ npm run dev
 
 # Run all tests
 npm test
-
-# Run specific test suites
-npm run test:server    # Server/API tests
-npm run test:web       # Frontend component tests
-npm run test:e2e       # End-to-end tests
-
-# Type checking
-npm run typecheck      # Both server and web
-npm run typecheck:server
-npm run typecheck:web
 ```
-
-## Data Storage
-
-Reviews and comments are stored in a SQLite database at:
-
-```
-<repository>/.code-review/reviews.db
-```
-
-This file is typically gitignored.
 
 ## Tech Stack
 
 - **Backend**: Fastify, Node.js native SQLite
 - **Frontend**: React 19, Vite, Tailwind CSS v4
 - **Testing**: Node.js test runner, Vitest, Playwright
+
+## Why "GitHuman"?
+
+In the age of AI coding assistants, someone needs to review the code before it's committed. That someone is you. GitHuman is the human checkpoint in an AI-assisted workflow.
 
 ## License
 

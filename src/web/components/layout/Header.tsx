@@ -14,7 +14,7 @@ export function Header({ repoName, branch, onToggleTodos, todosOpen, pendingTodo
     <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
       <div className="flex items-center gap-4">
         <Link to="/" className="text-lg sm:text-xl font-semibold text-gray-900 hover:text-gray-700">
-          Code Review
+          GitHuman
         </Link>
         {repoName && (
           <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600">

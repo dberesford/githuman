@@ -8,7 +8,7 @@ import type { ReviewStatus } from '../../shared/types.ts';
 
 function printHelp() {
   console.log(`
-Usage: code-review list [options]
+Usage: githuman list [options]
 
 List all saved reviews for the current repository.
 

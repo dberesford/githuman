@@ -6,6 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This project dogfoods itself: we use GitHuman to review GitHuman changes.
 
+- **Always run tests before committing** with `npm test` - fix any failing tests before proceeding
 - **Stage changes with `git add`** and ask the user to review them in GitHuman before committing
 - **Tasks are tracked in GitHuman's todo feature**, not external tools - check `githuman todo list` for pending work
 

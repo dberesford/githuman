@@ -1,77 +1,28 @@
-<svg
-  viewBox="0 0 48 48"
-  fill="none"
-  xmlns="http://www.w3.org/2000/svg"
->
-  <!-- Gradient definitions -->
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Version 1: The Gatekeeper - Human silhouette in code brackets -->
   <defs>
-    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="v1Grad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#06d6d6" />
-      <stop offset="50%" stop-color="#a855f7" />
-      <stop offset="100%" stop-color="#f472b6" />
+      <stop offset="100%" stop-color="#a855f7" />
     </linearGradient>
-    <linearGradient id="eyeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#06d6d6" />
-      <stop offset="100%" stop-color="#0891b2" />
-    </linearGradient>
-    <!-- Glow filter -->
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="2" result="coloredBlur" />
-      <feMerge>
-        <feMergeNode in="coloredBlur" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
   </defs>
 
-  <!-- Git branch lines - abstract representation -->
-  <path
-    d="M8 36 L16 24 L8 12"
-    stroke="url(#logoGradient)"
-    stroke-width="3"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    fill="none"
-    opacity="0.6"
-  />
-  <path
-    d="M40 36 L32 24 L40 12"
-    stroke="url(#logoGradient)"
-    stroke-width="3"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    fill="none"
-    opacity="0.6"
-  />
+  <!-- Left curly bracket { -->
+  <path d="M14 8 Q8 8 8 14 L8 20 Q8 24 4 24 Q8 24 8 28 L8 34 Q8 40 14 40"
+        stroke="url(#v1Grad)" stroke-width="2.5" stroke-linecap="round" fill="none" />
 
-  <!-- Central eye shape - the "human" element -->
-  <ellipse
-    cx="24"
-    cy="24"
-    rx="14"
-    ry="10"
-    stroke="url(#logoGradient)"
-    stroke-width="2.5"
-    fill="none"
-    filter="url(#glow)"
-  />
+  <!-- Right curly bracket } -->
+  <path d="M34 8 Q40 8 40 14 L40 20 Q40 24 44 24 Q40 24 40 28 L40 34 Q40 40 34 40"
+        stroke="url(#v1Grad)" stroke-width="2.5" stroke-linecap="round" fill="none" />
 
-  <!-- Inner eye/iris -->
-  <circle
-    cx="24"
-    cy="24"
-    r="6"
-    fill="url(#eyeGradient)"
-    filter="url(#glow)"
-  />
-
-  <!-- Pupil with highlight -->
-  <circle cx="24" cy="24" r="3" fill="#0a0f1a" />
-  <circle cx="22" cy="22" r="1" fill="white" opacity="0.8" />
-
-  <!-- Connection dots - git commits -->
-  <circle cx="8" cy="12" r="2" fill="#06d6d6" />
-  <circle cx="8" cy="36" r="2" fill="#f472b6" />
-  <circle cx="40" cy="12" r="2" fill="#a855f7" />
-  <circle cx="40" cy="36" r="2" fill="#06d6d6" />
+  <!-- Human silhouette in the middle -->
+  <!-- Head -->
+  <circle cx="24" cy="14" r="5" fill="#06d6d6" />
+  <!-- Body -->
+  <path d="M24 19 L24 30" stroke="#06d6d6" stroke-width="3" stroke-linecap="round" />
+  <!-- Arms raised (approval gesture) -->
+  <path d="M18 25 L24 22 L30 25" stroke="#06d6d6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+  <!-- Legs -->
+  <path d="M24 30 L20 38" stroke="#06d6d6" stroke-width="2.5" stroke-linecap="round" />
+  <path d="M24 30 L28 38" stroke="#06d6d6" stroke-width="2.5" stroke-linecap="round" />
 </svg>

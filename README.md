@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/logo.svg" alt="GitHuman Logo" width="120" height="120">
+</p>
+
 # GitHuman
 
 **Review AI agent code changes before commit.**

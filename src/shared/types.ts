@@ -116,7 +116,7 @@ export interface HealthResponse {
 }
 
 export interface PaginatedResponse<T> {
-  data: T[];
+  reviews: T[];
   total: number;
   page: number;
   pageSize: number;

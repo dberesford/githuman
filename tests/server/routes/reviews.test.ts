@@ -71,7 +71,7 @@ describe('review routes', () => {
       assert.strictEqual(response.statusCode, 200);
 
       const body = JSON.parse(response.body);
-      assert.ok(Array.isArray(body.data));
+      assert.ok(Array.isArray(body.reviews));
       assert.strictEqual(body.total, 0);
       assert.strictEqual(body.page, 1);
       assert.strictEqual(body.pageSize, 20);

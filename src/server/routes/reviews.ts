@@ -126,7 +126,7 @@ const ReviewListQuerystringSchema = Type.Object(
 
 const PaginatedReviewsSchema = Type.Object(
   {
-    data: Type.Array(ReviewListItemSchema),
+    reviews: Type.Array(ReviewListItemSchema),
     total: Type.Integer({ description: 'Total number of reviews' }),
     page: Type.Integer({ description: 'Current page number' }),
     pageSize: Type.Integer({ description: 'Items per page' }),

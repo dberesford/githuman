@@ -155,7 +155,7 @@ export class ReviewService {
     const result = this.repo.findAll(options);
 
     return {
-      data: result.data.map((review) => this.toReviewListItem(review)),
+      reviews: result.data.map((review) => this.toReviewListItem(review)),
       total: result.total,
       page,
       pageSize,

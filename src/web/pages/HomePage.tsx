@@ -108,7 +108,7 @@ export function HomePage() {
           </div>
         )}
 
-        {data && data.data.length === 0 && (
+        {data && data.reviews.length === 0 && (
           <div className="text-center py-16 gh-card gh-animate-in">
             <div className="mb-6">
               <Logo size="lg" showText={false} className="justify-center opacity-30" />
@@ -126,9 +126,9 @@ export function HomePage() {
           </div>
         )}
 
-        {data && data.data.length > 0 && (
+        {data && data.reviews.length > 0 && (
           <div className="space-y-3">
-            {data.data.map((review, index) => (
+            {data.reviews.map((review, index) => (
               <Link
                 key={review.id}
                 to={`/reviews/${review.id}`}
@@ -169,7 +169,7 @@ export function HomePage() {
 
         {data && data.total > data.pageSize && (
           <div className="mt-6 text-center text-sm text-[var(--gh-text-muted)]">
-            Showing {data.data.length} of {data.total} reviews
+            Showing {data.reviews.length} of {data.total} reviews
           </div>
         )}
       </div>

@@ -72,6 +72,15 @@ const StagedDiffResponseSchema = Type.Object(
   { description: 'Staged diff response' }
 );
 
+const UnstagedDiffResponseSchema = Type.Object(
+  {
+    files: Type.Array(DiffFileSchema),
+    summary: DiffSummarySchema,
+    repository: RepositoryInfoSchema,
+  },
+  { description: 'Unstaged diff response' }
+);
+
 const StagedFileSchema = Type.Object({
   path: Type.String({ description: 'File path' }),
   oldPath: Type.Optional(Type.String({ description: 'Original path for renames' })),
@@ -206,6 +215,74 @@ const diffRoutes: FastifyPluginAsync = async (fastify) => {
 
       // Get and parse the diff
       const diffText = await gitService.getStagedDiff();
+      const files = parseDiff(diffText);
+      const summary = getDiffSummary(files);
+      const repository = await gitService.getRepositoryInfo();
+
+      return {
+        files,
+        summary,
+        repository,
+      };
+    }
+  );
+
+  /**
+   * GET /api/diff/unstaged
+   * Returns parsed diff data for all unstaged (working tree) changes
+   */
+  fastify.get<{ Reply: StagedDiffResponse | { error: string; code?: string } }>(
+    '/api/diff/unstaged',
+    {
+      schema: {
+        tags: ['diff'],
+        summary: 'Get unstaged diff',
+        description: 'Returns parsed diff data for all unstaged changes in the working tree',
+        response: {
+          200: UnstagedDiffResponseSchema,
+          400: ErrorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const gitService = new GitService(fastify.config.repositoryPath);
+
+      // Check if it's a git repository
+      if (!(await gitService.isRepo())) {
+        return reply.code(400).send({
+          error: 'Not a git repository',
+          code: 'NOT_GIT_REPO',
+        });
+      }
+
+      // Check if the repository has any commits
+      if (!(await gitService.hasCommits())) {
+        return reply.code(400).send({
+          error: 'Repository has no commits yet. Create an initial commit first.',
+          code: 'NO_COMMITS',
+        });
+      }
+
+      // Check if there are unstaged changes
+      if (!(await gitService.hasUnstagedChanges())) {
+        const repoInfo = await gitService.getRepositoryInfo();
+        return {
+          files: [],
+          summary: {
+            totalFiles: 0,
+            totalAdditions: 0,
+            totalDeletions: 0,
+            filesAdded: 0,
+            filesModified: 0,
+            filesDeleted: 0,
+            filesRenamed: 0,
+          },
+          repository: repoInfo,
+        };
+      }
+
+      // Get and parse the diff
+      const diffText = await gitService.getUnstagedDiff();
       const files = parseDiff(diffText);
       const summary = getDiffSummary(files);
       const repository = await gitService.getRepositoryInfo();

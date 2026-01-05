@@ -8,6 +8,9 @@ interface SidebarProps {
   selectedFile?: string;
   onFileSelect: (path: string) => void;
   selectedIndex?: number;
+  showStageButtons?: boolean;
+  onStageFile?: (path: string) => void;
+  staging?: boolean;
 }
 
 function getStatusColor(status: DiffFile['status']) {
@@ -40,7 +43,7 @@ function getStatusLabel(status: DiffFile['status']) {
   }
 }
 
-export function Sidebar({ files, selectedFile, onFileSelect, selectedIndex }: SidebarProps) {
+export function Sidebar({ files, selectedFile, onFileSelect, selectedIndex, showStageButtons, onStageFile, staging }: SidebarProps) {
   const [filter, setFilter] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -108,29 +111,50 @@ export function Sidebar({ files, selectedFile, onFileSelect, selectedIndex }: Si
             const isHighlighted = selectedIndex !== undefined && files.indexOf(file) === selectedIndex;
 
             return (
-              <button
-                key={path}
-                onClick={() => handleFileSelect(path)}
-                className={cn(
-                  'w-full text-left px-2 py-1.5 rounded-lg text-sm flex items-center gap-2 transition-colors',
-                  isSelected
-                    ? 'bg-[var(--gh-accent-primary)]/10 text-[var(--gh-accent-primary)]'
-                    : 'text-[var(--gh-text-secondary)] hover:bg-[var(--gh-bg-elevated)] hover:text-[var(--gh-text-primary)]',
-                  isHighlighted && !isSelected && 'ring-1 ring-[var(--gh-accent-primary)]'
+              <div key={path} className="flex items-center gap-1">
+                <button
+                  onClick={() => handleFileSelect(path)}
+                  className={cn(
+                    'flex-1 text-left px-2 py-1.5 rounded-lg text-sm flex items-center gap-2 transition-colors min-w-0',
+                    isSelected
+                      ? 'bg-[var(--gh-accent-primary)]/10 text-[var(--gh-accent-primary)]'
+                      : 'text-[var(--gh-text-secondary)] hover:bg-[var(--gh-bg-elevated)] hover:text-[var(--gh-text-primary)]',
+                    isHighlighted && !isSelected && 'ring-1 ring-[var(--gh-accent-primary)]'
+                  )}
+                >
+                  <span className={cn('font-mono text-xs font-semibold shrink-0', getStatusColor(file.status))}>
+                    {getStatusLabel(file.status)}
+                  </span>
+                  <span className="truncate flex-1 font-mono text-xs" title={path}>
+                    {path}
+                  </span>
+                  <span className="text-xs shrink-0">
+                    <span className="text-[var(--gh-success)]">+{file.additions}</span>
+                    {' '}
+                    <span className="text-[var(--gh-error)]">-{file.deletions}</span>
+                  </span>
+                </button>
+                {showStageButtons && onStageFile && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onStageFile(path);
+                    }}
+                    disabled={staging}
+                    className={cn(
+                      'shrink-0 p-1.5 rounded-lg transition-colors',
+                      staging
+                        ? 'text-[var(--gh-text-muted)] cursor-not-allowed'
+                        : 'text-[var(--gh-accent-primary)] hover:bg-[var(--gh-accent-primary)]/10'
+                    )}
+                    title="Stage this file"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
                 )}
-              >
-                <span className={cn('font-mono text-xs font-semibold', getStatusColor(file.status))}>
-                  {getStatusLabel(file.status)}
-                </span>
-                <span className="truncate flex-1 font-mono text-xs" title={path}>
-                  {path}
-                </span>
-                <span className="text-xs shrink-0">
-                  <span className="text-[var(--gh-success)]">+{file.additions}</span>
-                  {' '}
-                  <span className="text-[var(--gh-error)]">-{file.deletions}</span>
-                </span>
-              </button>
+              </div>
             );
           })
         )}

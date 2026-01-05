@@ -35,6 +35,32 @@ export interface StagedDiffResponse {
   repository: RepositoryInfo;
 }
 
+export interface UnstagedDiffResponse {
+  files: DiffFile[];
+  summary: DiffSummary;
+  repository: RepositoryInfo;
+}
+
+export interface UnstagedFile {
+  path: string;
+  status: 'modified' | 'deleted' | 'untracked';
+}
+
+export interface UnstagedStatusResponse {
+  hasUnstagedChanges: boolean;
+  files: UnstagedFile[];
+}
+
+export interface StageResponse {
+  success: boolean;
+  staged: string[];
+}
+
+export interface UnstageResponse {
+  success: boolean;
+  unstaged: string[];
+}
+
 export interface StagedFilesResponse {
   files: Array<{
     path: string;
@@ -74,6 +100,8 @@ export const diffApi = {
   getStaged: () => api.get<StagedDiffResponse>('/diff/staged'),
 
   getStagedFiles: () => api.get<StagedFilesResponse>('/diff/files'),
+
+  getUnstaged: () => api.get<UnstagedDiffResponse>('/diff/unstaged'),
 };
 
 // Repository Info API
@@ -101,4 +129,8 @@ export const gitApi = {
   getBranches: () => api.get<BranchInfo[]>('/git/branches'),
   getCommits: (limit?: number) => api.get<CommitInfo[]>(`/git/commits${limit ? `?limit=${limit}` : ''}`),
   hasStagedChanges: () => api.get<{ hasStagedChanges: boolean }>('/git/staged'),
+  getUnstaged: () => api.get<UnstagedStatusResponse>('/git/unstaged'),
+  stageFiles: (files: string[]) => api.post<StageResponse, { files: string[] }>('/git/stage', { files }),
+  stageAll: () => api.post<StageResponse, Record<string, never>>('/git/stage-all', {}),
+  unstageFiles: (files: string[]) => api.post<UnstageResponse, { files: string[] }>('/git/unstage', { files }),
 };

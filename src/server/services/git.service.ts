@@ -206,6 +206,95 @@ export class GitService {
   }
 
   /**
+   * Get list of unstaged (working tree) files with their status
+   */
+  async getUnstagedFiles(): Promise<UnstagedFile[]> {
+    const status = await this.git.status();
+    const unstaged: UnstagedFile[] = [];
+
+    // Modified files that are not staged
+    for (const file of status.modified) {
+      if (!status.staged.includes(file)) {
+        unstaged.push({
+          path: file,
+          status: 'modified',
+        });
+      }
+    }
+
+    // New files that are not staged (untracked)
+    for (const file of status.not_added) {
+      unstaged.push({
+        path: file,
+        status: 'untracked',
+      });
+    }
+
+    // Deleted files that are not staged
+    for (const file of status.deleted) {
+      const isStaged = await this.isFileStaged(file);
+      if (!isStaged) {
+        unstaged.push({
+          path: file,
+          status: 'deleted',
+        });
+      }
+    }
+
+    return unstaged;
+  }
+
+  /**
+   * Check if there are any unstaged changes
+   */
+  async hasUnstagedChanges(): Promise<boolean> {
+    const status = await this.git.status();
+    return (
+      status.modified.length > 0 ||
+      status.not_added.length > 0 ||
+      status.deleted.some(f => !status.staged.includes(f))
+    );
+  }
+
+  /**
+   * Get unified diff for all unstaged (working tree) changes
+   */
+  async getUnstagedDiff(): Promise<string> {
+    const diff = await this.git.diff();
+    return diff;
+  }
+
+  /**
+   * Stage a specific file
+   */
+  async stageFile(filePath: string): Promise<void> {
+    await this.git.add(filePath);
+  }
+
+  /**
+   * Stage multiple files
+   */
+  async stageFiles(filePaths: string[]): Promise<void> {
+    if (filePaths.length > 0) {
+      await this.git.add(filePaths);
+    }
+  }
+
+  /**
+   * Stage all changes (including untracked files)
+   */
+  async stageAll(): Promise<void> {
+    await this.git.add('-A');
+  }
+
+  /**
+   * Unstage a specific file
+   */
+  async unstageFile(filePath: string): Promise<void> {
+    await this.git.reset(['HEAD', '--', filePath]);
+  }
+
+  /**
    * Get the current HEAD commit SHA (returns null for repos without commits)
    */
   async getHeadSha(): Promise<string | null> {
@@ -378,6 +467,11 @@ export interface StagedFile {
   path: string;
   oldPath?: string;
   status: 'added' | 'modified' | 'deleted' | 'renamed';
+}
+
+export interface UnstagedFile {
+  path: string;
+  status: 'modified' | 'deleted' | 'untracked';
 }
 
 export interface FileDiffStats {

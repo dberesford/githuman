@@ -1,17 +1,10 @@
 /**
  * Review API routes
  */
-import type { FastifyPluginAsync } from 'fastify';
-import { Type } from '@fastify/type-provider-typebox';
+import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { getDatabase } from '../db/index.ts';
-import { ReviewService, ReviewError, type ReviewWithDetails, type ReviewListItem } from '../services/review.service.ts';
+import { ReviewService, ReviewError, type ReviewWithDetails } from '../services/review.service.ts';
 import { ExportService } from '../services/export.service.ts';
-import type {
-  CreateReviewRequest,
-  UpdateReviewRequest,
-  ReviewStatus,
-  PaginatedResponse,
-} from '../../shared/types.ts';
 import { ErrorSchema, SuccessSchema } from '../schemas/common.ts';
 
 const ReviewStatusSchema = Type.Union(
@@ -153,17 +146,7 @@ const ExportQuerystringSchema = Type.Object({
   includeDiffSnippets: Type.Optional(Type.String({ description: 'Include diff snippets' })),
 });
 
-interface ReviewParams {
-  id: string;
-}
-
-interface ListQuerystring {
-  page?: string;
-  pageSize?: string;
-  status?: ReviewStatus;
-}
-
-const reviewRoutes: FastifyPluginAsync = async (fastify) => {
+const reviewRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   const getService = () => {
     const db = getDatabase();
     return new ReviewService(db, fastify.config.repositoryPath);
@@ -173,10 +156,7 @@ const reviewRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /api/reviews
    * List all reviews with pagination and filtering
    */
-  fastify.get<{
-    Querystring: ListQuerystring;
-    Reply: PaginatedResponse<ReviewListItem>;
-  }>('/api/reviews', {
+  fastify.get('/api/reviews', {
     schema: {
       tags: ['reviews'],
       summary: 'List all reviews',
@@ -202,10 +182,7 @@ const reviewRoutes: FastifyPluginAsync = async (fastify) => {
    * POST /api/reviews
    * Create a new review from staged changes
    */
-  fastify.post<{
-    Body: CreateReviewRequest;
-    Reply: ReviewWithDetails | { error: string; code: string };
-  }>('/api/reviews', {
+  fastify.post('/api/reviews', {
     schema: {
       tags: ['reviews'],
       summary: 'Create a new review',
@@ -238,10 +215,7 @@ const reviewRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /api/reviews/:id
    * Get a review with full diff data
    */
-  fastify.get<{
-    Params: ReviewParams;
-    Reply: ReviewWithDetails | { error: string };
-  }>('/api/reviews/:id', {
+  fastify.get('/api/reviews/:id', {
     schema: {
       tags: ['reviews'],
       summary: 'Get a review by ID',
@@ -269,11 +243,7 @@ const reviewRoutes: FastifyPluginAsync = async (fastify) => {
    * PATCH /api/reviews/:id
    * Update review status
    */
-  fastify.patch<{
-    Params: ReviewParams;
-    Body: UpdateReviewRequest;
-    Reply: ReviewWithDetails | { error: string };
-  }>('/api/reviews/:id', {
+  fastify.patch('/api/reviews/:id', {
     schema: {
       tags: ['reviews'],
       summary: 'Update a review',
@@ -302,10 +272,7 @@ const reviewRoutes: FastifyPluginAsync = async (fastify) => {
    * DELETE /api/reviews/:id
    * Delete a review and all associated comments
    */
-  fastify.delete<{
-    Params: ReviewParams;
-    Reply: { success: boolean } | { error: string };
-  }>('/api/reviews/:id', {
+  fastify.delete('/api/reviews/:id', {
     schema: {
       tags: ['reviews'],
       summary: 'Delete a review',
@@ -333,14 +300,7 @@ const reviewRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /api/reviews/stats
    * Get review statistics
    */
-  fastify.get<{
-    Reply: {
-      total: number;
-      inProgress: number;
-      approved: number;
-      changesRequested: number;
-    };
-  }>('/api/reviews/stats', {
+  fastify.get('/api/reviews/stats', {
     schema: {
       tags: ['reviews'],
       summary: 'Get review statistics',
@@ -358,14 +318,7 @@ const reviewRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /api/reviews/:id/export
    * Export review as markdown
    */
-  fastify.get<{
-    Params: ReviewParams;
-    Querystring: {
-      includeResolved?: string;
-      includeDiffSnippets?: string;
-    };
-    Reply: string | { error: string };
-  }>('/api/reviews/:id/export', {
+  fastify.get('/api/reviews/:id/export', {
     schema: {
       tags: ['reviews'],
       summary: 'Export review as markdown',

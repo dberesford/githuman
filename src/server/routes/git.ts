@@ -1,10 +1,8 @@
 /**
  * Git API routes - repository info, branches, commits
  */
-import type { FastifyPluginAsync } from 'fastify';
-import { Type } from '@fastify/type-provider-typebox';
-import { GitService, type BranchInfo, type CommitInfo, type UnstagedFile } from '../services/git.service.ts';
-import type { RepositoryInfo } from '../../shared/types.ts';
+import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
+import { GitService } from '../services/git.service.ts';
 import { ErrorSchema } from '../schemas/common.ts';
 
 const RepositoryInfoSchema = Type.Object(
@@ -102,7 +100,7 @@ const UnstageResponseSchema = Type.Object(
   { description: 'Unstage response' }
 );
 
-const gitRoutes: FastifyPluginAsync = async (fastify) => {
+const gitRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   // Helper to get git service
   const getService = () => {
     return new GitService(fastify.config.repositoryPath);
@@ -112,9 +110,7 @@ const gitRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /api/git/info
    * Get repository information
    */
-  fastify.get<{
-    Reply: RepositoryInfo | { error: string };
-  }>('/api/git/info', {
+  fastify.get('/api/git/info', {
     schema: {
       tags: ['git'],
       summary: 'Get repository info',
@@ -141,9 +137,7 @@ const gitRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /api/git/branches
    * List all branches
    */
-  fastify.get<{
-    Reply: BranchInfo[];
-  }>('/api/git/branches', {
+  fastify.get('/api/git/branches', {
     schema: {
       tags: ['git'],
       summary: 'List all branches',
@@ -161,10 +155,7 @@ const gitRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /api/git/commits
    * List recent commits
    */
-  fastify.get<{
-    Querystring: { limit?: string };
-    Reply: CommitInfo[];
-  }>('/api/git/commits', {
+  fastify.get('/api/git/commits', {
     schema: {
       tags: ['git'],
       summary: 'List recent commits',
@@ -184,9 +175,7 @@ const gitRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /api/git/staged
    * Check if there are staged changes
    */
-  fastify.get<{
-    Reply: { hasStagedChanges: boolean };
-  }>('/api/git/staged', {
+  fastify.get('/api/git/staged', {
     schema: {
       tags: ['git'],
       summary: 'Check staged changes',
@@ -205,9 +194,7 @@ const gitRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /api/git/unstaged
    * Get list of unstaged (working tree) files
    */
-  fastify.get<{
-    Reply: { hasUnstagedChanges: boolean; files: UnstagedFile[] };
-  }>('/api/git/unstaged', {
+  fastify.get('/api/git/unstaged', {
     schema: {
       tags: ['git'],
       summary: 'Get unstaged changes',
@@ -227,10 +214,7 @@ const gitRoutes: FastifyPluginAsync = async (fastify) => {
    * POST /api/git/stage
    * Stage specific files
    */
-  fastify.post<{
-    Body: { files: string[] };
-    Reply: { success: boolean; staged: string[] } | { error: string };
-  }>('/api/git/stage', {
+  fastify.post('/api/git/stage', {
     schema: {
       tags: ['git'],
       summary: 'Stage files',
@@ -262,9 +246,7 @@ const gitRoutes: FastifyPluginAsync = async (fastify) => {
    * POST /api/git/stage-all
    * Stage all changes (including untracked files)
    */
-  fastify.post<{
-    Reply: { success: boolean; staged: string[] } | { error: string };
-  }>('/api/git/stage-all', {
+  fastify.post('/api/git/stage-all', {
     schema: {
       tags: ['git'],
       summary: 'Stage all files',
@@ -295,10 +277,7 @@ const gitRoutes: FastifyPluginAsync = async (fastify) => {
    * POST /api/git/unstage
    * Unstage specific files
    */
-  fastify.post<{
-    Body: { files: string[] };
-    Reply: { success: boolean; unstaged: string[] } | { error: string };
-  }>('/api/git/unstage', {
+  fastify.post('/api/git/unstage', {
     schema: {
       tags: ['git'],
       summary: 'Unstage files',

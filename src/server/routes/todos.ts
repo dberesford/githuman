@@ -1,12 +1,11 @@
 /**
  * Todo API routes
  */
-import type { FastifyPluginAsync } from 'fastify';
-import { Type } from '@fastify/type-provider-typebox';
+import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { randomUUID } from 'node:crypto';
 import { getDatabase } from '../db/index.ts';
 import { TodoRepository } from '../repositories/todo.repo.ts';
-import type { Todo, CreateTodoRequest, UpdateTodoRequest } from '../../shared/types.ts';
+import type { Todo } from '../../shared/types.ts';
 import { ErrorSchema, SuccessSchema } from '../schemas/common.ts';
 
 const TodoSchema = Type.Object(
@@ -91,22 +90,13 @@ const DeletedCountSchema = Type.Object(
   { description: 'Deleted count response' }
 );
 
-interface TodoParams {
-  id: string;
-}
-
-interface TodoQuerystring {
-  reviewId?: string;
-  completed?: string;
-}
-
 export interface TodoStats {
   total: number;
   completed: number;
   pending: number;
 }
 
-const todoRoutes: FastifyPluginAsync = async (fastify) => {
+const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   const getRepo = () => {
     const db = getDatabase();
     return new TodoRepository(db);
@@ -116,10 +106,7 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /api/todos
    * List all todos with optional filtering
    */
-  fastify.get<{
-    Querystring: TodoQuerystring;
-    Reply: Todo[];
-  }>('/api/todos', {
+  fastify.get('/api/todos', {
     schema: {
       tags: ['todos'],
       summary: 'List all todos',
@@ -152,9 +139,7 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /api/todos/stats
    * Get todo statistics
    */
-  fastify.get<{
-    Reply: TodoStats;
-  }>('/api/todos/stats', {
+  fastify.get('/api/todos/stats', {
     schema: {
       tags: ['todos'],
       summary: 'Get todo statistics',
@@ -176,10 +161,7 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
    * POST /api/todos
    * Create a new todo
    */
-  fastify.post<{
-    Body: CreateTodoRequest;
-    Reply: Todo;
-  }>('/api/todos', {
+  fastify.post('/api/todos', {
     schema: {
       tags: ['todos'],
       summary: 'Create a new todo',
@@ -208,10 +190,7 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /api/todos/:id
    * Get a specific todo
    */
-  fastify.get<{
-    Params: TodoParams;
-    Reply: Todo | { error: string };
-  }>('/api/todos/:id', {
+  fastify.get('/api/todos/:id', {
     schema: {
       tags: ['todos'],
       summary: 'Get a todo by ID',
@@ -239,11 +218,7 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
    * PATCH /api/todos/:id
    * Update a todo's content or completed status
    */
-  fastify.patch<{
-    Params: TodoParams;
-    Body: UpdateTodoRequest;
-    Reply: Todo | { error: string };
-  }>('/api/todos/:id', {
+  fastify.patch('/api/todos/:id', {
     schema: {
       tags: ['todos'],
       summary: 'Update a todo',
@@ -272,10 +247,7 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
    * DELETE /api/todos/:id
    * Delete a todo
    */
-  fastify.delete<{
-    Params: TodoParams;
-    Reply: { success: boolean } | { error: string };
-  }>('/api/todos/:id', {
+  fastify.delete('/api/todos/:id', {
     schema: {
       tags: ['todos'],
       summary: 'Delete a todo',
@@ -303,10 +275,7 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
    * POST /api/todos/:id/toggle
    * Toggle a todo's completed status
    */
-  fastify.post<{
-    Params: TodoParams;
-    Reply: Todo | { error: string };
-  }>('/api/todos/:id/toggle', {
+  fastify.post('/api/todos/:id/toggle', {
     schema: {
       tags: ['todos'],
       summary: 'Toggle todo completion',
@@ -334,9 +303,7 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
    * DELETE /api/todos/completed
    * Delete all completed todos
    */
-  fastify.delete<{
-    Reply: { deleted: number };
-  }>('/api/todos/completed', {
+  fastify.delete('/api/todos/completed', {
     schema: {
       tags: ['todos'],
       summary: 'Delete completed todos',
@@ -355,10 +322,7 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
    * POST /api/todos/reorder
    * Reorder todos by providing an array of IDs in the desired order
    */
-  fastify.post<{
-    Body: { orderedIds: string[] };
-    Reply: { updated: number };
-  }>('/api/todos/reorder', {
+  fastify.post('/api/todos/reorder', {
     schema: {
       tags: ['todos'],
       summary: 'Reorder todos',
@@ -379,11 +343,7 @@ const todoRoutes: FastifyPluginAsync = async (fastify) => {
    * POST /api/todos/:id/move
    * Move a single todo to a new position
    */
-  fastify.post<{
-    Params: TodoParams;
-    Body: { position: number };
-    Reply: Todo | { error: string };
-  }>('/api/todos/:id/move', {
+  fastify.post('/api/todos/:id/move', {
     schema: {
       tags: ['todos'],
       summary: 'Move a todo',

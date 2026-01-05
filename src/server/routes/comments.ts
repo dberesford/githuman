@@ -1,19 +1,12 @@
 /**
  * Comment API routes
  */
-import type { FastifyPluginAsync } from 'fastify';
-import { Type } from '@fastify/type-provider-typebox';
+import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { getDatabase } from '../db/index.ts';
 import {
   CommentService,
   CommentError,
-  type CommentStats,
 } from '../services/comment.service.ts';
-import type {
-  Comment,
-  CreateCommentRequest,
-  UpdateCommentRequest,
-} from '../../shared/types.ts';
 import { ErrorSchema, SuccessSchema } from '../schemas/common.ts';
 
 const CommentSchema = Type.Object(
@@ -86,19 +79,7 @@ const CommentStatsSchema = Type.Object(
   { description: 'Comment statistics' }
 );
 
-interface ReviewParams {
-  reviewId: string;
-}
-
-interface CommentParams {
-  id: string;
-}
-
-interface FileQuerystring {
-  filePath?: string;
-}
-
-const commentRoutes: FastifyPluginAsync = async (fastify) => {
+const commentRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   const getService = () => {
     const db = getDatabase();
     return new CommentService(db);
@@ -108,11 +89,7 @@ const commentRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /api/reviews/:reviewId/comments
    * List all comments for a review, optionally filtered by file
    */
-  fastify.get<{
-    Params: ReviewParams;
-    Querystring: FileQuerystring;
-    Reply: Comment[] | { error: string };
-  }>('/api/reviews/:reviewId/comments', {
+  fastify.get('/api/reviews/:reviewId/comments', {
     schema: {
       tags: ['comments'],
       summary: 'List comments for a review',
@@ -139,10 +116,7 @@ const commentRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /api/reviews/:reviewId/comments/stats
    * Get comment statistics for a review
    */
-  fastify.get<{
-    Params: ReviewParams;
-    Reply: CommentStats;
-  }>('/api/reviews/:reviewId/comments/stats', {
+  fastify.get('/api/reviews/:reviewId/comments/stats', {
     schema: {
       tags: ['comments'],
       summary: 'Get comment statistics',
@@ -161,11 +135,7 @@ const commentRoutes: FastifyPluginAsync = async (fastify) => {
    * POST /api/reviews/:reviewId/comments
    * Add a comment to a review
    */
-  fastify.post<{
-    Params: ReviewParams;
-    Body: CreateCommentRequest;
-    Reply: Comment | { error: string; code: string };
-  }>('/api/reviews/:reviewId/comments', {
+  fastify.post('/api/reviews/:reviewId/comments', {
     schema: {
       tags: ['comments'],
       summary: 'Add a comment',
@@ -201,10 +171,7 @@ const commentRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /api/comments/:id
    * Get a specific comment
    */
-  fastify.get<{
-    Params: CommentParams;
-    Reply: Comment | { error: string };
-  }>('/api/comments/:id', {
+  fastify.get('/api/comments/:id', {
     schema: {
       tags: ['comments'],
       summary: 'Get a comment by ID',
@@ -232,11 +199,7 @@ const commentRoutes: FastifyPluginAsync = async (fastify) => {
    * PATCH /api/comments/:id
    * Update a comment's content or suggestion
    */
-  fastify.patch<{
-    Params: CommentParams;
-    Body: UpdateCommentRequest;
-    Reply: Comment | { error: string };
-  }>('/api/comments/:id', {
+  fastify.patch('/api/comments/:id', {
     schema: {
       tags: ['comments'],
       summary: 'Update a comment',
@@ -265,10 +228,7 @@ const commentRoutes: FastifyPluginAsync = async (fastify) => {
    * DELETE /api/comments/:id
    * Delete a comment
    */
-  fastify.delete<{
-    Params: CommentParams;
-    Reply: { success: boolean } | { error: string };
-  }>('/api/comments/:id', {
+  fastify.delete('/api/comments/:id', {
     schema: {
       tags: ['comments'],
       summary: 'Delete a comment',
@@ -296,10 +256,7 @@ const commentRoutes: FastifyPluginAsync = async (fastify) => {
    * POST /api/comments/:id/resolve
    * Mark a comment as resolved
    */
-  fastify.post<{
-    Params: CommentParams;
-    Reply: Comment | { error: string };
-  }>('/api/comments/:id/resolve', {
+  fastify.post('/api/comments/:id/resolve', {
     schema: {
       tags: ['comments'],
       summary: 'Resolve a comment',
@@ -327,10 +284,7 @@ const commentRoutes: FastifyPluginAsync = async (fastify) => {
    * POST /api/comments/:id/unresolve
    * Mark a comment as unresolved
    */
-  fastify.post<{
-    Params: CommentParams;
-    Reply: Comment | { error: string };
-  }>('/api/comments/:id/unresolve', {
+  fastify.post('/api/comments/:id/unresolve', {
     schema: {
       tags: ['comments'],
       summary: 'Unresolve a comment',

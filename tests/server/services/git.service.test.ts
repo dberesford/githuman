@@ -1,6 +1,35 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { execSync } from 'node:child_process';
 import { GitService } from '../../../src/server/services/git.service.ts';
+
+interface TestContext {
+  after: (fn: () => void) => void;
+}
+
+function createTestRepo(t: TestContext): string {
+  const tempDir = mkdtempSync(join(tmpdir(), 'git-service-test-'));
+  execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+  execSync('git config user.email "test@test.com"', { cwd: tempDir, stdio: 'ignore' });
+  execSync('git config user.name "Test"', { cwd: tempDir, stdio: 'ignore' });
+
+  t.after(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  return tempDir;
+}
+
+function createTestRepoWithCommit(t: TestContext): string {
+  const tempDir = createTestRepo(t);
+  writeFileSync(join(tempDir, 'README.md'), '# Test\n');
+  execSync('git add README.md', { cwd: tempDir, stdio: 'ignore' });
+  execSync('git commit -m "Initial commit"', { cwd: tempDir, stdio: 'ignore' });
+  return tempDir;
+}
 
 describe('git.service', () => {
   // Use current directory which is a git repo
@@ -149,6 +178,178 @@ describe('git.service', () => {
 
       assert.ok(typeof branch === 'string');
       assert.ok(branch.length > 0);
+    });
+  });
+
+  describe('getUnstagedFiles', () => {
+    it('should return empty array when no unstaged changes', async (t) => {
+      const tempDir = createTestRepoWithCommit(t);
+      const testGit = new GitService(tempDir);
+
+      const files = await testGit.getUnstagedFiles();
+      assert.deepStrictEqual(files, []);
+    });
+
+    it('should return modified files', async (t) => {
+      const tempDir = createTestRepoWithCommit(t);
+      const testGit = new GitService(tempDir);
+
+      // Modify the file
+      writeFileSync(join(tempDir, 'README.md'), '# Updated\n');
+
+      const files = await testGit.getUnstagedFiles();
+      assert.strictEqual(files.length, 1);
+      assert.strictEqual(files[0].path, 'README.md');
+      assert.strictEqual(files[0].status, 'modified');
+    });
+
+    it('should return untracked files', async (t) => {
+      const tempDir = createTestRepoWithCommit(t);
+      const testGit = new GitService(tempDir);
+
+      // Create a new file
+      writeFileSync(join(tempDir, 'new-file.txt'), 'new content\n');
+
+      const files = await testGit.getUnstagedFiles();
+      assert.strictEqual(files.length, 1);
+      assert.strictEqual(files[0].path, 'new-file.txt');
+      assert.strictEqual(files[0].status, 'untracked');
+    });
+  });
+
+  describe('hasUnstagedChanges', () => {
+    it('should return false when no unstaged changes', async (t) => {
+      const tempDir = createTestRepoWithCommit(t);
+      const testGit = new GitService(tempDir);
+
+      const result = await testGit.hasUnstagedChanges();
+      assert.strictEqual(result, false);
+    });
+
+    it('should return true when there are modified files', async (t) => {
+      const tempDir = createTestRepoWithCommit(t);
+      const testGit = new GitService(tempDir);
+
+      writeFileSync(join(tempDir, 'README.md'), '# Updated\n');
+
+      const result = await testGit.hasUnstagedChanges();
+      assert.strictEqual(result, true);
+    });
+
+    it('should return true when there are untracked files', async (t) => {
+      const tempDir = createTestRepoWithCommit(t);
+      const testGit = new GitService(tempDir);
+
+      writeFileSync(join(tempDir, 'new-file.txt'), 'content\n');
+
+      const result = await testGit.hasUnstagedChanges();
+      assert.strictEqual(result, true);
+    });
+  });
+
+  describe('getUnstagedDiff', () => {
+    it('should return empty string when no unstaged changes', async (t) => {
+      const tempDir = createTestRepoWithCommit(t);
+      const testGit = new GitService(tempDir);
+
+      const diff = await testGit.getUnstagedDiff();
+      assert.strictEqual(diff, '');
+    });
+
+    it('should return diff for modified files', async (t) => {
+      const tempDir = createTestRepoWithCommit(t);
+      const testGit = new GitService(tempDir);
+
+      writeFileSync(join(tempDir, 'README.md'), '# Updated content\n');
+
+      const diff = await testGit.getUnstagedDiff();
+      assert.ok(diff.includes('README.md'));
+      assert.ok(diff.includes('-# Test'));
+      assert.ok(diff.includes('+# Updated content'));
+    });
+  });
+
+  describe('stageFile', () => {
+    it('should stage a single file', async (t) => {
+      const tempDir = createTestRepoWithCommit(t);
+      const testGit = new GitService(tempDir);
+
+      writeFileSync(join(tempDir, 'new-file.txt'), 'content\n');
+
+      // Should have unstaged changes
+      assert.strictEqual(await testGit.hasUnstagedChanges(), true);
+      assert.strictEqual(await testGit.hasStagedChanges(), false);
+
+      await testGit.stageFile('new-file.txt');
+
+      // Now should have staged changes
+      assert.strictEqual(await testGit.hasStagedChanges(), true);
+    });
+  });
+
+  describe('stageFiles', () => {
+    it('should stage multiple files', async (t) => {
+      const tempDir = createTestRepoWithCommit(t);
+      const testGit = new GitService(tempDir);
+
+      writeFileSync(join(tempDir, 'file1.txt'), 'content1\n');
+      writeFileSync(join(tempDir, 'file2.txt'), 'content2\n');
+
+      await testGit.stageFiles(['file1.txt', 'file2.txt']);
+
+      const stagedFiles = await testGit.getStagedFiles();
+      const stagedPaths = stagedFiles.map(f => f.path);
+      assert.ok(stagedPaths.includes('file1.txt'), 'file1.txt should be staged');
+      assert.ok(stagedPaths.includes('file2.txt'), 'file2.txt should be staged');
+    });
+
+    it('should do nothing when passed empty array', async (t) => {
+      const tempDir = createTestRepoWithCommit(t);
+      const testGit = new GitService(tempDir);
+
+      await testGit.stageFiles([]);
+
+      assert.strictEqual(await testGit.hasStagedChanges(), false);
+    });
+  });
+
+  describe('stageAll', () => {
+    it('should stage all changes including untracked files', async (t) => {
+      const tempDir = createTestRepoWithCommit(t);
+      const testGit = new GitService(tempDir);
+
+      writeFileSync(join(tempDir, 'README.md'), '# Updated\n');
+      writeFileSync(join(tempDir, 'new-file.txt'), 'content\n');
+
+      // Verify we have unstaged changes before
+      assert.strictEqual(await testGit.hasUnstagedChanges(), true);
+      assert.strictEqual(await testGit.hasStagedChanges(), false);
+
+      await testGit.stageAll();
+
+      // Verify files are now staged
+      assert.strictEqual(await testGit.hasStagedChanges(), true);
+      const stagedFiles = await testGit.getStagedFiles();
+      const stagedPaths = stagedFiles.map(f => f.path);
+      assert.ok(stagedPaths.includes('README.md'), 'README.md should be staged');
+      assert.ok(stagedPaths.includes('new-file.txt'), 'new-file.txt should be staged');
+    });
+  });
+
+  describe('unstageFile', () => {
+    it('should unstage a file', async (t) => {
+      const tempDir = createTestRepoWithCommit(t);
+      const testGit = new GitService(tempDir);
+
+      writeFileSync(join(tempDir, 'new-file.txt'), 'content\n');
+      await testGit.stageFile('new-file.txt');
+
+      assert.strictEqual(await testGit.hasStagedChanges(), true);
+
+      await testGit.unstageFile('new-file.txt');
+
+      assert.strictEqual(await testGit.hasStagedChanges(), false);
+      assert.strictEqual(await testGit.hasUnstagedChanges(), true);
     });
   });
 });

@@ -1,6 +1,6 @@
 ---
 name: githuman
-description: Review AI-generated code changes before committing using GitHuman. Use when: reviewing staged changes, creating code reviews, checking what the AI agent wrote, preparing to commit, or when user mentions "review", "GitHuman", or "before commit".
+description: Review AI-generated code changes before committing using GitHuman. Use when: reviewing code changes, creating code reviews, checking what the AI agent wrote, preparing to commit, or when user mentions "review", "GitHuman", or "before commit".
 allowed-tools: Bash(*), Read, Glob, Grep
 ---
 
@@ -21,7 +21,7 @@ npm install -g githuman
 ## When to Use This Skill
 
 - After an AI agent has made code changes
-- Before committing staged changes
+- Before committing changes
 - When you want to review what was modified
 - When preparing a commit with proper review
 
@@ -42,8 +42,8 @@ This opens a web interface at http://localhost:3847 for visual code review.
 npx githuman list
 ```
 
-**Create a review from staged changes:**
-Stage your changes first with `git add`, then create a review in the web UI.
+**Create a review:**
+Open the web UI - you can stage files directly in GitHuman or review already staged changes.
 
 **Resolve a review (mark as approved and resolve all comments):**
 ```bash
@@ -64,17 +64,19 @@ npx githuman todo done <id>         # Mark as done
 
 ### 3. Typical Review Flow
 
-1. AI agent makes changes and stages them with `git add`
+1. AI agent makes changes
 2. Run `npx githuman serve` to start the review interface
-3. Review the diff in the web UI
-4. Add comments or suggestions on specific lines
-5. Create todos for follow-up work
-6. Approve or request changes
-7. When satisfied, commit the changes
+3. View unstaged changes and stage them directly in the UI (or use `git add`)
+4. Review the diff in the web UI
+5. Add comments or suggestions on specific lines
+6. Create todos for follow-up work
+7. Approve or request changes
+8. When satisfied, commit the changes
 
 ## Tips
 
 - Use `npx githuman resolve last` to quickly approve the most recent review
 - Export reviews with `npx githuman export last` to keep documentation
 - Check `npx githuman todo list` for pending tasks before committing
+- Stage files directly in GitHuman - no need to switch to the terminal
 - If you use GitHuman frequently, install globally: `npm install -g githuman`

@@ -36,8 +36,8 @@ export function Header({ repoName, branch, onToggleTodos, todosOpen, pendingTodo
           to="/staged"
           className="text-xs sm:text-sm text-[var(--gh-text-secondary)] hover:text-[var(--gh-accent-primary)] px-2 sm:px-3 py-1.5 rounded-lg hover:bg-[var(--gh-bg-elevated)] transition-colors"
         >
-          <span className="hidden sm:inline">Staged Changes</span>
-          <span className="sm:hidden">Staged</span>
+          <span className="hidden sm:inline">Changes</span>
+          <span className="sm:hidden">Changes</span>
         </Link>
         <Link
           to="/"

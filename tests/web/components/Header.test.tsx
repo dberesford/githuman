@@ -18,7 +18,7 @@ describe('Header', () => {
   it('renders navigation links', () => {
     renderWithRouter(<Header />);
 
-    expect(screen.getByText('Staged Changes')).toBeDefined();
+    expect(screen.getAllByText('Changes').length).toBeGreaterThan(0);
     expect(screen.getByText('Reviews')).toBeDefined();
   });
 
@@ -44,7 +44,7 @@ describe('Header', () => {
   it('links to correct routes', () => {
     renderWithRouter(<Header />);
 
-    const stagedLink = screen.getByText('Staged Changes').closest('a');
+    const stagedLink = screen.getAllByText('Changes')[0].closest('a');
     const reviewsLink = screen.getByText('Reviews').closest('a');
     const titleLink = screen.getByText('Git').closest('a');
 

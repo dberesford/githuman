@@ -242,5 +242,76 @@ describe('TodoItem', () => {
       const content = screen.getByText('Test todo item');
       expect(content.className).toContain('cursor-text');
     });
+
+    it('saves on blur', () => {
+      const onEdit = vi.fn();
+      render(<TodoItem todo={mockTodo} onToggle={() => {}} onDelete={() => {}} onEdit={onEdit} />);
+
+      const content = screen.getByText('Test todo item');
+      fireEvent.doubleClick(content);
+
+      const input = screen.getByRole('textbox');
+      fireEvent.change(input, { target: { value: 'Blurred content' } });
+      fireEvent.blur(input);
+
+      expect(onEdit).toHaveBeenCalledWith('todo-1', 'Blurred content');
+    });
+
+    it('does not call onEdit when content is only whitespace', () => {
+      const onEdit = vi.fn();
+      render(<TodoItem todo={mockTodo} onToggle={() => {}} onDelete={() => {}} onEdit={onEdit} />);
+
+      const content = screen.getByText('Test todo item');
+      fireEvent.doubleClick(content);
+
+      const input = screen.getByRole('textbox');
+      fireEvent.change(input, { target: { value: '   ' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+
+      expect(onEdit).not.toHaveBeenCalled();
+    });
+
+    it('trims content before saving', () => {
+      const onEdit = vi.fn();
+      render(<TodoItem todo={mockTodo} onToggle={() => {}} onDelete={() => {}} onEdit={onEdit} />);
+
+      const content = screen.getByText('Test todo item');
+      fireEvent.doubleClick(content);
+
+      const input = screen.getByRole('textbox');
+      fireEvent.change(input, { target: { value: '  trimmed content  ' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+
+      expect(onEdit).toHaveBeenCalledWith('todo-1', 'trimmed content');
+    });
+
+    it('populates input with current todo content', () => {
+      const onEdit = vi.fn();
+      render(<TodoItem todo={mockTodo} onToggle={() => {}} onDelete={() => {}} onEdit={onEdit} />);
+
+      const content = screen.getByText('Test todo item');
+      fireEvent.doubleClick(content);
+
+      const input = screen.getByRole('textbox');
+      expect(input).toHaveProperty('value', 'Test todo item');
+    });
+
+    it('restores original content after cancel', () => {
+      const onEdit = vi.fn();
+      render(<TodoItem todo={mockTodo} onToggle={() => {}} onDelete={() => {}} onEdit={onEdit} />);
+
+      // First edit and cancel
+      const content = screen.getByText('Test todo item');
+      fireEvent.doubleClick(content);
+
+      const input = screen.getByRole('textbox');
+      fireEvent.change(input, { target: { value: 'Changed' } });
+      fireEvent.keyDown(input, { key: 'Escape' });
+
+      // Enter edit mode again - should show original content
+      fireEvent.doubleClick(screen.getByText('Test todo item'));
+      const newInput = screen.getByRole('textbox');
+      expect(newInput).toHaveProperty('value', 'Test todo item');
+    });
   });
 });

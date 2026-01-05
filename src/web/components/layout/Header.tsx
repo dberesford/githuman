@@ -33,14 +33,14 @@ export function Header({ repoName, branch, onToggleTodos, todosOpen, pendingTodo
       </div>
       <nav className="flex items-center gap-2 sm:gap-3">
         <Link
-          to="/staged"
+          to="/"
           className="text-xs sm:text-sm text-[var(--gh-text-secondary)] hover:text-[var(--gh-accent-primary)] px-2 sm:px-3 py-1.5 rounded-lg hover:bg-[var(--gh-bg-elevated)] transition-colors"
         >
           <span className="hidden sm:inline">Changes</span>
           <span className="sm:hidden">Changes</span>
         </Link>
         <Link
-          to="/"
+          to="/reviews"
           className="text-xs sm:text-sm text-[var(--gh-text-secondary)] hover:text-[var(--gh-accent-primary)] px-2 sm:px-3 py-1.5 rounded-lg hover:bg-[var(--gh-bg-elevated)] transition-colors"
         >
           Reviews

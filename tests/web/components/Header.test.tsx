@@ -48,8 +48,8 @@ describe('Header', () => {
     const reviewsLink = screen.getByText('Reviews').closest('a');
     const titleLink = screen.getByText('Git').closest('a');
 
-    expect(stagedLink?.getAttribute('href')).toBe('/staged');
-    expect(reviewsLink?.getAttribute('href')).toBe('/');
+    expect(stagedLink?.getAttribute('href')).toBe('/');
+    expect(reviewsLink?.getAttribute('href')).toBe('/reviews');
     expect(titleLink?.getAttribute('href')).toBe('/');
   });
 });

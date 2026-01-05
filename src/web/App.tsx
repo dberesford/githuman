@@ -11,9 +11,9 @@ export function App() {
     <HighlighterProvider>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<HomePage />} />
+          <Route index element={<StagedChangesPage />} />
           <Route path="new" element={<NewReviewPage />} />
-          <Route path="staged" element={<StagedChangesPage />} />
+          <Route path="reviews" element={<HomePage />} />
           <Route path="reviews/:id" element={<ReviewPage />} />
         </Route>
       </Routes>

@@ -29,7 +29,7 @@ export function CommentForm({ onSubmit, onCancel, loading, showSuggestion = true
           value={content}
           onChange={(e) => setContent(e.target.value)}
           placeholder="Write a comment..."
-          className="gh-input w-full text-sm resize-none"
+          className="gh-input w-full text-base resize-none"
           rows={3}
           autoFocus
           disabled={loading}
@@ -64,7 +64,7 @@ export function CommentForm({ onSubmit, onCancel, loading, showSuggestion = true
               value={suggestion}
               onChange={(e) => setSuggestion(e.target.value)}
               placeholder="Paste or type the suggested code..."
-              className="gh-input w-full text-sm font-mono resize-none"
+              className="gh-input w-full text-base font-mono resize-none"
               rows={4}
               disabled={loading}
             />

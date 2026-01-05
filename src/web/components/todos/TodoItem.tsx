@@ -1,7 +1,7 @@
 /**
  * Single todo item component with drag-and-drop support (desktop + mobile)
  */
-import type { DragEvent, TouchEvent } from 'react';
+import { useState, useRef, useEffect, type DragEvent, type TouchEvent, type KeyboardEvent } from 'react';
 import { cn } from '../../lib/utils';
 import type { Todo } from '../../../shared/types';
 
@@ -9,6 +9,7 @@ interface TodoItemProps {
   todo: Todo;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit?: (id: string, content: string) => void;
   disabled?: boolean;
   draggable?: boolean;
   onDragStart?: (e: DragEvent<HTMLDivElement>, id: string) => void;
@@ -28,6 +29,7 @@ export function TodoItem({
   todo,
   onToggle,
   onDelete,
+  onEdit,
   disabled,
   draggable = false,
   onDragStart,
@@ -41,6 +43,49 @@ export function TodoItem({
   onTouchEnd,
   isDragging,
 }: TodoItemProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(todo.content);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      // Move cursor to end instead of selecting all
+      const len = inputRef.current.value.length;
+      inputRef.current.setSelectionRange(len, len);
+    }
+  }, [isEditing]);
+
+  const handleDoubleClick = () => {
+    if (!disabled && onEdit) {
+      setEditContent(todo.content);
+      setIsEditing(true);
+    }
+  };
+
+  const handleSave = () => {
+    const trimmed = editContent.trim();
+    if (trimmed && trimmed !== todo.content) {
+      onEdit?.(todo.id, trimmed);
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditContent(todo.content);
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancel();
+    }
+  };
+
   return (
     <div
       data-testid={`todo-item-${todo.id}`}
@@ -101,14 +146,29 @@ export function TodoItem({
           </svg>
         )}
       </button>
-      <span
-        className={cn(
-          'flex-1 text-sm break-words text-[var(--gh-text-primary)]',
-          todo.completed && 'line-through text-[var(--gh-text-muted)]'
-        )}
-      >
-        {todo.content}
-      </span>
+      {isEditing ? (
+        <input
+          ref={inputRef}
+          type="text"
+          value={editContent}
+          onChange={(e) => setEditContent(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={handleKeyDown}
+          className="flex-1 text-base bg-[var(--gh-bg-elevated)] text-[var(--gh-text-primary)] px-2 py-0.5 rounded border border-[var(--gh-accent-primary)] outline-none"
+        />
+      ) : (
+        <span
+          onDoubleClick={handleDoubleClick}
+          className={cn(
+            'flex-1 text-sm break-words text-[var(--gh-text-primary)]',
+            todo.completed && 'line-through text-[var(--gh-text-muted)]',
+            onEdit && !disabled && 'cursor-text'
+          )}
+          title={onEdit && !disabled ? 'Double-click to edit' : undefined}
+        >
+          {todo.content}
+        </span>
+      )}
       <button
         onClick={() => onDelete(todo.id)}
         disabled={disabled}

@@ -153,7 +153,7 @@ export function LineComment({
             <textarea
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
-              className="gh-input w-full text-sm resize-none"
+              className="gh-input w-full text-base resize-none"
               rows={3}
               autoFocus
             />

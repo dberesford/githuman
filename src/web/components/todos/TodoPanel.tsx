@@ -9,6 +9,7 @@ import {
   useTodos,
   useTodoStats,
   useCreateTodo,
+  useUpdateTodo,
   useToggleTodo,
   useDeleteTodo,
   useClearCompleted,
@@ -36,12 +37,13 @@ export function TodoPanel({ reviewId, className }: TodoPanelProps) {
   const { todos, loading, refetch } = useTodos(filters);
   const { stats, refetch: refetchStats } = useTodoStats();
   const { create, loading: creating } = useCreateTodo();
+  const { update, loading: updating } = useUpdateTodo();
   const { toggle, loading: toggling } = useToggleTodo();
   const { deleteTodo, loading: deleting } = useDeleteTodo();
   const { clearCompleted, loading: clearing } = useClearCompleted();
   const { reorder, loading: reordering } = useReorderTodos();
 
-  const isDisabled = creating || toggling || deleting || clearing || reordering;
+  const isDisabled = creating || updating || toggling || deleting || clearing || reordering;
 
   const handleAdd = useCallback(async (content: string) => {
     await create({ content, reviewId });
@@ -60,6 +62,11 @@ export function TodoPanel({ reviewId, className }: TodoPanelProps) {
     refetch();
     refetchStats();
   }, [deleteTodo, refetch, refetchStats]);
+
+  const handleEdit = useCallback(async (id: string, content: string) => {
+    await update(id, { content });
+    refetch();
+  }, [update, refetch]);
 
   const handleClearCompleted = useCallback(async () => {
     await clearCompleted();
@@ -246,6 +253,7 @@ export function TodoPanel({ reviewId, className }: TodoPanelProps) {
                 todo={todo}
                 onToggle={handleToggle}
                 onDelete={handleDelete}
+                onEdit={handleEdit}
                 disabled={isDisabled}
                 draggable
                 onDragStart={handleDragStart}

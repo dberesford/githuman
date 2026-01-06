@@ -26,8 +26,8 @@
     "typecheck": "npm run typecheck:server && npm run typecheck:web",
     "typecheck:server": "tsc --noEmit",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
-    "lint": "eslint src tests",
-    "lint:fix": "eslint src tests --fix",
+    "lint": "eslint --cache src tests",
+    "lint:fix": "eslint --cache src tests --fix",
     "prepublishOnly": "npm run build && npm run typecheck && npm test"
   },
   "pre-commit": [

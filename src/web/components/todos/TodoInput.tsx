@@ -38,7 +38,7 @@ export function TodoInput({ onAdd, disabled, placeholder = 'Add a todo...' }: To
         placeholder={placeholder}
         disabled={disabled}
         className={cn(
-          'gh-input flex-1 text-sm',
+          'gh-input flex-1 text-base',
           disabled && 'opacity-50 cursor-not-allowed'
         )}
       />

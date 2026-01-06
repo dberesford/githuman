@@ -1,9 +1,9 @@
 /**
  * Comment Context - provides comment state and actions to diff components
  */
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
-import { commentsApi } from '../api/comments';
-import type { Comment, CreateCommentRequest } from '../../shared/types';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
+import { commentsApi } from '../api/comments'
+import type { Comment, CreateCommentRequest } from '../../shared/types'
 
 interface CommentContextValue {
   reviewId: string | null;
@@ -20,14 +20,14 @@ interface CommentContextValue {
   refetch: () => Promise<void>;
 }
 
-const CommentContext = createContext<CommentContextValue | null>(null);
+const CommentContext = createContext<CommentContextValue | null>(null)
 
-export function useCommentContext() {
-  const context = useContext(CommentContext);
+export function useCommentContext () {
+  const context = useContext(CommentContext)
   if (!context) {
-    throw new Error('useCommentContext must be used within a CommentProvider');
+    throw new Error('useCommentContext must be used within a CommentProvider')
   }
-  return context;
+  return context
 }
 
 interface CommentProviderProps {
@@ -35,69 +35,69 @@ interface CommentProviderProps {
   children: ReactNode;
 }
 
-function getLineKey(filePath: string, lineNumber: number | null, lineType: string | null): string {
-  return `${filePath}:${lineNumber ?? 'file'}:${lineType ?? 'none'}`;
+function getLineKey (filePath: string, lineNumber: number | null, lineType: string | null): string {
+  return `${filePath}:${lineNumber ?? 'file'}:${lineType ?? 'none'}`
 }
 
-export function CommentProvider({ reviewId, children }: CommentProviderProps) {
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [loading, setLoading] = useState(!!reviewId);
-  const [activeCommentLine, setActiveCommentLine] = useState<string | null>(null);
+export function CommentProvider ({ reviewId, children }: CommentProviderProps) {
+  const [comments, setComments] = useState<Comment[]>([])
+  const [loading, setLoading] = useState(!!reviewId)
+  const [activeCommentLine, setActiveCommentLine] = useState<string | null>(null)
 
   const refetch = useCallback(async () => {
-    if (!reviewId) return;
-    setLoading(true);
+    if (!reviewId) return
+    setLoading(true)
     try {
-      const data = await commentsApi.getByReview(reviewId);
-      setComments(data);
+      const data = await commentsApi.getByReview(reviewId)
+      setComments(data)
     } catch (err) {
-      console.error('Failed to fetch comments:', err);
+      console.error('Failed to fetch comments:', err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [reviewId]);
+  }, [reviewId])
 
   // Fetch when reviewId changes
   useEffect(() => {
     if (reviewId) {
-      refetch();
+      refetch()
     }
-  }, [reviewId, refetch]);
+  }, [reviewId, refetch])
 
   // Group comments by line
-  const commentsByLine = new Map<string, Comment[]>();
+  const commentsByLine = new Map<string, Comment[]>()
   for (const comment of comments) {
-    const key = getLineKey(comment.filePath, comment.lineNumber, comment.lineType);
-    const existing = commentsByLine.get(key) || [];
-    commentsByLine.set(key, [...existing, comment]);
+    const key = getLineKey(comment.filePath, comment.lineNumber, comment.lineType)
+    const existing = commentsByLine.get(key) || []
+    commentsByLine.set(key, [...existing, comment])
   }
 
   const addComment = async (data: CreateCommentRequest) => {
-    if (!reviewId) throw new Error('Cannot add comment without a review');
-    const comment = await commentsApi.create(reviewId, data);
-    setComments((prev) => [...prev, comment]);
-    setActiveCommentLine(null);
-  };
+    if (!reviewId) throw new Error('Cannot add comment without a review')
+    const comment = await commentsApi.create(reviewId, data)
+    setComments((prev) => [...prev, comment])
+    setActiveCommentLine(null)
+  }
 
   const updateComment = async (commentId: string, content: string) => {
-    const updated = await commentsApi.update(commentId, { content });
-    setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)));
-  };
+    const updated = await commentsApi.update(commentId, { content })
+    setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)))
+  }
 
   const deleteComment = async (commentId: string) => {
-    await commentsApi.delete(commentId);
-    setComments((prev) => prev.filter((c) => c.id !== commentId));
-  };
+    await commentsApi.delete(commentId)
+    setComments((prev) => prev.filter((c) => c.id !== commentId))
+  }
 
   const resolveComment = async (commentId: string) => {
-    const updated = await commentsApi.resolve(commentId);
-    setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)));
-  };
+    const updated = await commentsApi.resolve(commentId)
+    setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)))
+  }
 
   const unresolveComment = async (commentId: string) => {
-    const updated = await commentsApi.unresolve(commentId);
-    setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)));
-  };
+    const updated = await commentsApi.unresolve(commentId)
+    setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)))
+  }
 
   return (
     <CommentContext.Provider
@@ -118,7 +118,7 @@ export function CommentProvider({ reviewId, children }: CommentProviderProps) {
     >
       {children}
     </CommentContext.Provider>
-  );
+  )
 }
 
-export { getLineKey };
+export { getLineKey }

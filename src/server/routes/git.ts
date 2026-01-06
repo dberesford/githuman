@@ -1,9 +1,9 @@
 /**
  * Git API routes - repository info, branches, commits
  */
-import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { GitService } from '../services/git.service.ts';
-import { ErrorSchema } from '../schemas/common.ts';
+import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
+import { GitService } from '../services/git.service.ts'
+import { ErrorSchema } from '../schemas/common.ts'
 
 const RepositoryInfoSchema = Type.Object(
   {
@@ -13,7 +13,7 @@ const RepositoryInfoSchema = Type.Object(
     path: Type.String({ description: 'Repository path' }),
   },
   { description: 'Repository information' }
-);
+)
 
 const BranchInfoSchema = Type.Object(
   {
@@ -22,7 +22,7 @@ const BranchInfoSchema = Type.Object(
     isCurrent: Type.Boolean({ description: 'Whether this is the current branch' }),
   },
   { description: 'Branch information' }
-);
+)
 
 const CommitInfoSchema = Type.Object(
   {
@@ -32,18 +32,18 @@ const CommitInfoSchema = Type.Object(
     date: Type.String({ description: 'Commit date' }),
   },
   { description: 'Commit information' }
-);
+)
 
 const CommitsQuerystringSchema = Type.Object({
   limit: Type.Optional(Type.String({ description: 'Maximum number of commits to return' })),
-});
+})
 
 const StagedStatusSchema = Type.Object(
   {
     hasStagedChanges: Type.Boolean({ description: 'Whether there are staged changes' }),
   },
   { description: 'Staged changes status' }
-);
+)
 
 const UnstagedFileSchema = Type.Object(
   {
@@ -55,7 +55,7 @@ const UnstagedFileSchema = Type.Object(
     ], { description: 'File status' }),
   },
   { description: 'Unstaged file information' }
-);
+)
 
 const UnstagedStatusSchema = Type.Object(
   {
@@ -63,26 +63,26 @@ const UnstagedStatusSchema = Type.Object(
     files: Type.Array(UnstagedFileSchema, { description: 'List of unstaged files' }),
   },
   { description: 'Unstaged changes status' }
-);
+)
 
 const StageRequestSchema = Type.Object(
   {
     files: Type.Array(Type.String(), { description: 'File paths to stage' }),
   },
   { description: 'Stage request body' }
-);
+)
 
 const StageAllRequestSchema = Type.Object(
   {},
   { description: 'Stage all request body (empty)' }
-);
+)
 
 const UnstageRequestSchema = Type.Object(
   {
     files: Type.Array(Type.String(), { description: 'File paths to unstage' }),
   },
   { description: 'Unstage request body' }
-);
+)
 
 const StageResponseSchema = Type.Object(
   {
@@ -90,7 +90,7 @@ const StageResponseSchema = Type.Object(
     staged: Type.Array(Type.String(), { description: 'Files that were staged' }),
   },
   { description: 'Stage response' }
-);
+)
 
 const UnstageResponseSchema = Type.Object(
   {
@@ -98,13 +98,13 @@ const UnstageResponseSchema = Type.Object(
     unstaged: Type.Array(Type.String(), { description: 'Files that were unstaged' }),
   },
   { description: 'Unstage response' }
-);
+)
 
 const gitRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   // Helper to get git service
   const getService = () => {
-    return new GitService(fastify.config.repositoryPath);
-  };
+    return new GitService(fastify.config.repositoryPath)
+  }
 
   /**
    * GET /api/git/info
@@ -121,17 +121,17 @@ const gitRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const service = getService();
+    const service = getService()
 
     try {
-      const info = await service.getRepositoryInfo();
-      return info;
+      const info = await service.getRepositoryInfo()
+      return info
     } catch (err) {
       return reply.code(500).send({
         error: 'Failed to get repository info',
-      });
+      })
     }
-  });
+  })
 
   /**
    * GET /api/git/branches
@@ -147,9 +147,9 @@ const gitRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async () => {
-    const service = getService();
-    return service.getBranches();
-  });
+    const service = getService()
+    return service.getBranches()
+  })
 
   /**
    * GET /api/git/commits
@@ -166,10 +166,10 @@ const gitRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request) => {
-    const service = getService();
-    const limit = request.query.limit ? parseInt(request.query.limit, 10) : 20;
-    return service.getCommits(limit);
-  });
+    const service = getService()
+    const limit = request.query.limit ? parseInt(request.query.limit, 10) : 20
+    return service.getCommits(limit)
+  })
 
   /**
    * GET /api/git/staged
@@ -185,10 +185,10 @@ const gitRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async () => {
-    const service = getService();
-    const hasStagedChanges = await service.hasStagedChanges();
-    return { hasStagedChanges };
-  });
+    const service = getService()
+    const hasStagedChanges = await service.hasStagedChanges()
+    return { hasStagedChanges }
+  })
 
   /**
    * GET /api/git/unstaged
@@ -204,11 +204,11 @@ const gitRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async () => {
-    const service = getService();
-    const hasUnstagedChanges = await service.hasUnstagedChanges();
-    const files = hasUnstagedChanges ? await service.getUnstagedFiles() : [];
-    return { hasUnstagedChanges, files };
-  });
+    const service = getService()
+    const hasUnstagedChanges = await service.hasUnstagedChanges()
+    const files = hasUnstagedChanges ? await service.getUnstagedFiles() : []
+    return { hasUnstagedChanges, files }
+  })
 
   /**
    * POST /api/git/stage
@@ -226,21 +226,21 @@ const gitRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const service = getService();
-    const { files } = request.body;
+    const service = getService()
+    const { files } = request.body
 
     if (!files || files.length === 0) {
-      return reply.code(400).send({ error: 'No files specified' });
+      return reply.code(400).send({ error: 'No files specified' })
     }
 
     try {
-      await service.stageFiles(files);
-      return { success: true, staged: files };
+      await service.stageFiles(files)
+      return { success: true, staged: files }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to stage files';
-      return reply.code(400).send({ error: message });
+      const message = err instanceof Error ? err.message : 'Failed to stage files'
+      return reply.code(400).send({ error: message })
     }
-  });
+  })
 
   /**
    * POST /api/git/stage-all
@@ -258,20 +258,20 @@ const gitRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const service = getService();
+    const service = getService()
 
     try {
       // Get list of unstaged files before staging
-      const unstagedFiles = await service.getUnstagedFiles();
-      const filePaths = unstagedFiles.map(f => f.path);
+      const unstagedFiles = await service.getUnstagedFiles()
+      const filePaths = unstagedFiles.map(f => f.path)
 
-      await service.stageAll();
-      return { success: true, staged: filePaths };
+      await service.stageAll()
+      return { success: true, staged: filePaths }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to stage files';
-      return reply.code(400).send({ error: message });
+      const message = err instanceof Error ? err.message : 'Failed to stage files'
+      return reply.code(400).send({ error: message })
     }
-  });
+  })
 
   /**
    * POST /api/git/unstage
@@ -289,23 +289,23 @@ const gitRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const service = getService();
-    const { files } = request.body;
+    const service = getService()
+    const { files } = request.body
 
     if (!files || files.length === 0) {
-      return reply.code(400).send({ error: 'No files specified' });
+      return reply.code(400).send({ error: 'No files specified' })
     }
 
     try {
       for (const file of files) {
-        await service.unstageFile(file);
+        await service.unstageFile(file)
       }
-      return { success: true, unstaged: files };
+      return { success: true, unstaged: files }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to unstage files';
-      return reply.code(400).send({ error: message });
+      const message = err instanceof Error ? err.message : 'Failed to unstage files'
+      return reply.code(400).send({ error: message })
     }
-  });
-};
+  })
+}
 
-export default gitRoutes;
+export default gitRoutes

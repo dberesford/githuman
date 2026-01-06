@@ -1,28 +1,28 @@
 /**
  * Review API routes
  */
-import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { getDatabase } from '../db/index.ts';
-import { ReviewService, ReviewError, type ReviewWithDetails } from '../services/review.service.ts';
-import { ExportService } from '../services/export.service.ts';
-import { ErrorSchema, SuccessSchema } from '../schemas/common.ts';
+import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
+import { getDatabase } from '../db/index.ts'
+import { ReviewService, ReviewError } from '../services/review.service.ts'
+import { ExportService } from '../services/export.service.ts'
+import { ErrorSchema, SuccessSchema } from '../schemas/common.ts'
 
 const ReviewStatusSchema = Type.Union(
   [Type.Literal('in_progress'), Type.Literal('approved'), Type.Literal('changes_requested')],
   { description: 'Review status' }
-);
+)
 
 const ReviewSourceTypeSchema = Type.Union(
   [Type.Literal('staged'), Type.Literal('branch'), Type.Literal('commits')],
   { description: 'Review source type' }
-);
+)
 
 const DiffLineSchema = Type.Object({
   type: Type.Union([Type.Literal('added'), Type.Literal('removed'), Type.Literal('context')]),
   content: Type.String(),
   oldLineNumber: Type.Union([Type.Integer(), Type.Null()]),
   newLineNumber: Type.Union([Type.Integer(), Type.Null()]),
-});
+})
 
 const DiffHunkSchema = Type.Object({
   oldStart: Type.Integer(),
@@ -30,7 +30,7 @@ const DiffHunkSchema = Type.Object({
   newStart: Type.Integer(),
   newLines: Type.Integer(),
   lines: Type.Array(DiffLineSchema),
-});
+})
 
 const DiffFileSchema = Type.Object(
   {
@@ -47,7 +47,7 @@ const DiffFileSchema = Type.Object(
     hunks: Type.Array(DiffHunkSchema),
   },
   { description: 'Diff file' }
-);
+)
 
 const DiffSummarySchema = Type.Object(
   {
@@ -60,7 +60,7 @@ const DiffSummarySchema = Type.Object(
     filesRenamed: Type.Integer({ description: 'Number of files renamed' }),
   },
   { description: 'Diff summary statistics' }
-);
+)
 
 const ReviewListItemSchema = Type.Object(
   {
@@ -75,7 +75,7 @@ const ReviewListItemSchema = Type.Object(
     updatedAt: Type.String({ format: 'date-time' }),
   },
   { description: 'Review list item' }
-);
+)
 
 const ReviewWithDetailsSchema = Type.Object(
   {
@@ -91,7 +91,7 @@ const ReviewWithDetailsSchema = Type.Object(
     updatedAt: Type.String({ format: 'date-time' }),
   },
   { description: 'Review with full diff details' }
-);
+)
 
 const CreateReviewSchema = Type.Object(
   {
@@ -99,14 +99,14 @@ const CreateReviewSchema = Type.Object(
     sourceRef: Type.Optional(Type.String({ description: 'Branch name or commit SHAs' })),
   },
   { description: 'Create review request' }
-);
+)
 
 const UpdateReviewSchema = Type.Object(
   {
     status: Type.Optional(ReviewStatusSchema),
   },
   { description: 'Update review request' }
-);
+)
 
 const ReviewListQuerystringSchema = Type.Object(
   {
@@ -115,7 +115,7 @@ const ReviewListQuerystringSchema = Type.Object(
     status: Type.Optional(ReviewStatusSchema),
   },
   { description: 'Review list filters' }
-);
+)
 
 const PaginatedReviewsSchema = Type.Object(
   {
@@ -125,7 +125,7 @@ const PaginatedReviewsSchema = Type.Object(
     pageSize: Type.Integer({ description: 'Items per page' }),
   },
   { description: 'Paginated reviews response' }
-);
+)
 
 const ReviewStatsSchema = Type.Object(
   {
@@ -135,22 +135,22 @@ const ReviewStatsSchema = Type.Object(
     changesRequested: Type.Integer({ description: 'Reviews with changes requested' }),
   },
   { description: 'Review statistics' }
-);
+)
 
 const ReviewParamsSchema = Type.Object({
   id: Type.String({ description: 'Review ID' }),
-});
+})
 
 const ExportQuerystringSchema = Type.Object({
   includeResolved: Type.Optional(Type.String({ description: 'Include resolved comments' })),
   includeDiffSnippets: Type.Optional(Type.String({ description: 'Include diff snippets' })),
-});
+})
 
 const reviewRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   const getService = () => {
-    const db = getDatabase();
-    return new ReviewService(db, fastify.config.repositoryPath);
-  };
+    const db = getDatabase()
+    return new ReviewService(db, fastify.config.repositoryPath)
+  }
 
   /**
    * GET /api/reviews
@@ -167,16 +167,16 @@ const reviewRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request) => {
-    const { page, pageSize, status } = request.query;
-    const service = getService();
+    const { page, pageSize, status } = request.query
+    const service = getService()
 
     return service.list({
       page: page ? parseInt(page, 10) : undefined,
       pageSize: pageSize ? parseInt(pageSize, 10) : undefined,
       status,
       repositoryPath: fastify.config.repositoryPath,
-    });
-  });
+    })
+  })
 
   /**
    * POST /api/reviews
@@ -194,22 +194,22 @@ const reviewRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const service = getService();
+    const service = getService()
 
     try {
-      const review = await service.create(request.body);
-      reply.code(201);
-      return review;
+      const review = await service.create(request.body)
+      reply.code(201)
+      return review
     } catch (err) {
       if (err instanceof ReviewError) {
         return reply.code(400).send({
           error: err.message,
           code: err.code,
-        });
+        })
       }
-      throw err;
+      throw err
     }
-  });
+  })
 
   /**
    * GET /api/reviews/:id
@@ -227,17 +227,17 @@ const reviewRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const service = getService();
-    const review = service.getById(request.params.id);
+    const service = getService()
+    const review = service.getById(request.params.id)
 
     if (!review) {
       return reply.code(404).send({
         error: 'Review not found',
-      });
+      })
     }
 
-    return review;
-  });
+    return review
+  })
 
   /**
    * PATCH /api/reviews/:id
@@ -256,17 +256,17 @@ const reviewRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const service = getService();
-    const review = service.update(request.params.id, request.body);
+    const service = getService()
+    const review = service.update(request.params.id, request.body)
 
     if (!review) {
       return reply.code(404).send({
         error: 'Review not found',
-      });
+      })
     }
 
-    return review;
-  });
+    return review
+  })
 
   /**
    * DELETE /api/reviews/:id
@@ -284,17 +284,17 @@ const reviewRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const service = getService();
-    const deleted = service.delete(request.params.id);
+    const service = getService()
+    const deleted = service.delete(request.params.id)
 
     if (!deleted) {
       return reply.code(404).send({
         error: 'Review not found',
-      });
+      })
     }
 
-    return { success: true };
-  });
+    return { success: true }
+  })
 
   /**
    * GET /api/reviews/stats
@@ -310,9 +310,9 @@ const reviewRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async () => {
-    const service = getService();
-    return service.getStats(fastify.config.repositoryPath);
-  });
+    const service = getService()
+    return service.getStats(fastify.config.repositoryPath)
+  })
 
   /**
    * GET /api/reviews/:id/export
@@ -331,25 +331,25 @@ const reviewRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const db = getDatabase();
-    const exportService = new ExportService(db);
+    const db = getDatabase()
+    const exportService = new ExportService(db)
 
-    const { includeResolved, includeDiffSnippets } = request.query;
+    const { includeResolved, includeDiffSnippets } = request.query
 
     const markdown = exportService.exportToMarkdown(request.params.id, {
       includeResolved: includeResolved !== 'false',
       includeDiffSnippets: includeDiffSnippets !== 'false',
-    });
+    })
 
     if (!markdown) {
       return reply.code(404).send({
         error: 'Review not found',
-      });
+      })
     }
 
-    reply.header('Content-Type', 'text/markdown');
-    return markdown;
-  });
-};
+    reply.header('Content-Type', 'text/markdown')
+    return markdown
+  })
+}
 
-export default reviewRoutes;
+export default reviewRoutes

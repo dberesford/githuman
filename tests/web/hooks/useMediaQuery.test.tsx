@@ -1,13 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { useMediaQuery, useIsMobile } from '../../../src/web/hooks/useMediaQuery';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { renderHook, act } from '@testing-library/react'
+import { useMediaQuery, useIsMobile } from '../../../src/web/hooks/useMediaQuery'
 
 describe('useMediaQuery', () => {
-  let matchMediaMock: ReturnType<typeof vi.fn>;
-  let listeners: Map<string, ((e: MediaQueryListEvent) => void)[]>;
+  let matchMediaMock: ReturnType<typeof vi.fn>
+  let listeners: Map<string, ((e: MediaQueryListEvent) => void)[]>
 
   beforeEach(() => {
-    listeners = new Map();
+    listeners = new Map()
 
     matchMediaMock = vi.fn((query: string) => {
       const mediaQueryList = {
@@ -18,30 +18,30 @@ describe('useMediaQuery', () => {
         removeListener: vi.fn(),
         addEventListener: vi.fn((event: string, listener: (e: MediaQueryListEvent) => void) => {
           if (event === 'change') {
-            const existing = listeners.get(query) || [];
-            listeners.set(query, [...existing, listener]);
+            const existing = listeners.get(query) || []
+            listeners.set(query, [...existing, listener])
           }
         }),
         removeEventListener: vi.fn((event: string, listener: (e: MediaQueryListEvent) => void) => {
           if (event === 'change') {
-            const existing = listeners.get(query) || [];
-            listeners.set(query, existing.filter((l) => l !== listener));
+            const existing = listeners.get(query) || []
+            listeners.set(query, existing.filter((l) => l !== listener))
           }
         }),
         dispatchEvent: vi.fn(),
-      };
-      return mediaQueryList;
-    });
+      }
+      return mediaQueryList
+    })
 
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
       value: matchMediaMock,
-    });
-  });
+    })
+  })
 
   afterEach(() => {
-    vi.restoreAllMocks();
-  });
+    vi.restoreAllMocks()
+  })
 
   it('should return false when media query does not match', () => {
     matchMediaMock.mockImplementation((query: string) => ({
@@ -49,11 +49,11 @@ describe('useMediaQuery', () => {
       media: query,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
-    }));
+    }))
 
-    const { result } = renderHook(() => useMediaQuery('(max-width: 767px)'));
-    expect(result.current).toBe(false);
-  });
+    const { result } = renderHook(() => useMediaQuery('(max-width: 767px)'))
+    expect(result.current).toBe(false)
+  })
 
   it('should return true when media query matches', () => {
     matchMediaMock.mockImplementation((query: string) => ({
@@ -61,55 +61,55 @@ describe('useMediaQuery', () => {
       media: query,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
-    }));
+    }))
 
-    const { result } = renderHook(() => useMediaQuery('(max-width: 767px)'));
-    expect(result.current).toBe(true);
-  });
+    const { result } = renderHook(() => useMediaQuery('(max-width: 767px)'))
+    expect(result.current).toBe(true)
+  })
 
   it('should update when media query changes', () => {
-    let changeListener: ((e: MediaQueryListEvent) => void) | null = null;
+    let changeListener: ((e: MediaQueryListEvent) => void) | null = null
 
     matchMediaMock.mockImplementation((query: string) => ({
       matches: false,
       media: query,
       addEventListener: vi.fn((event: string, listener: (e: MediaQueryListEvent) => void) => {
         if (event === 'change') {
-          changeListener = listener;
+          changeListener = listener
         }
       }),
       removeEventListener: vi.fn(),
-    }));
+    }))
 
-    const { result } = renderHook(() => useMediaQuery('(max-width: 767px)'));
-    expect(result.current).toBe(false);
+    const { result } = renderHook(() => useMediaQuery('(max-width: 767px)'))
+    expect(result.current).toBe(false)
 
     // Simulate media query change
     act(() => {
       if (changeListener) {
-        changeListener({ matches: true } as MediaQueryListEvent);
+        changeListener({ matches: true } as MediaQueryListEvent)
       }
-    });
+    })
 
-    expect(result.current).toBe(true);
-  });
+    expect(result.current).toBe(true)
+  })
 
   it('should clean up event listener on unmount', () => {
-    const removeEventListener = vi.fn();
+    const removeEventListener = vi.fn()
 
     matchMediaMock.mockImplementation((query: string) => ({
       matches: false,
       media: query,
       addEventListener: vi.fn(),
       removeEventListener,
-    }));
+    }))
 
-    const { unmount } = renderHook(() => useMediaQuery('(max-width: 767px)'));
-    unmount();
+    const { unmount } = renderHook(() => useMediaQuery('(max-width: 767px)'))
+    unmount()
 
-    expect(removeEventListener).toHaveBeenCalledWith('change', expect.any(Function));
-  });
-});
+    expect(removeEventListener).toHaveBeenCalledWith('change', expect.any(Function))
+  })
+})
 
 describe('useIsMobile', () => {
   beforeEach(() => {
@@ -121,16 +121,16 @@ describe('useIsMobile', () => {
         addEventListener: vi.fn(),
         removeEventListener: vi.fn(),
       })),
-    });
-  });
+    })
+  })
 
   it('should return true for mobile breakpoint', () => {
-    const { result } = renderHook(() => useIsMobile());
-    expect(result.current).toBe(true);
-  });
+    const { result } = renderHook(() => useIsMobile())
+    expect(result.current).toBe(true)
+  })
 
   it('should use correct breakpoint query', () => {
-    renderHook(() => useIsMobile());
-    expect(window.matchMedia).toHaveBeenCalledWith('(max-width: 767px)');
-  });
-});
+    renderHook(() => useIsMobile())
+    expect(window.matchMedia).toHaveBeenCalledWith('(max-width: 767px)')
+  })
+})

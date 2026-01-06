@@ -14,8 +14,8 @@ export interface Review {
   updatedAt: string;
 }
 
-export type ReviewStatus = 'in_progress' | 'approved' | 'changes_requested';
-export type ReviewSourceType = 'staged' | 'branch' | 'commits';
+export type ReviewStatus = 'in_progress' | 'approved' | 'changes_requested'
+export type ReviewSourceType = 'staged' | 'branch' | 'commits'
 
 export interface Comment {
   id: string;

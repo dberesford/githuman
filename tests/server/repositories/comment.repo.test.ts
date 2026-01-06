@@ -1,22 +1,22 @@
-import { describe, it, beforeEach, after } from 'node:test';
-import assert from 'node:assert';
-import { DatabaseSync } from 'node:sqlite';
-import { CommentRepository } from '../../../src/server/repositories/comment.repo.ts';
-import { ReviewRepository } from '../../../src/server/repositories/review.repo.ts';
-import { migrate, migrations } from '../../../src/server/db/migrations.ts';
+import { describe, it, beforeEach, after } from 'node:test'
+import assert from 'node:assert'
+import { DatabaseSync } from 'node:sqlite'
+import { CommentRepository } from '../../../src/server/repositories/comment.repo.ts'
+import { ReviewRepository } from '../../../src/server/repositories/review.repo.ts'
+import { migrate, migrations } from '../../../src/server/db/migrations.ts'
 
 describe('CommentRepository', () => {
-  let db: DatabaseSync;
-  let repo: CommentRepository;
-  let reviewRepo: ReviewRepository;
-  let testReviewId: string;
+  let db: DatabaseSync
+  let repo: CommentRepository
+  let reviewRepo: ReviewRepository
+  let testReviewId: string
 
   beforeEach(() => {
-    db = new DatabaseSync(':memory:');
-    db.exec('PRAGMA foreign_keys = ON');
-    migrate(db, migrations);
-    repo = new CommentRepository(db);
-    reviewRepo = new ReviewRepository(db);
+    db = new DatabaseSync(':memory:')
+    db.exec('PRAGMA foreign_keys = ON')
+    migrate(db, migrations)
+    repo = new CommentRepository(db)
+    reviewRepo = new ReviewRepository(db)
 
     // Create a test review to attach comments to
     const review = reviewRepo.create({
@@ -27,13 +27,13 @@ describe('CommentRepository', () => {
       sourceRef: null,
       snapshotData: '{}',
       status: 'in_progress',
-    });
-    testReviewId = review.id;
-  });
+    })
+    testReviewId = review.id
+  })
 
   after(() => {
-    db?.close();
-  });
+    db?.close()
+  })
 
   describe('create', () => {
     it('should create a comment and return it', () => {
@@ -46,19 +46,19 @@ describe('CommentRepository', () => {
         content: 'Great change!',
         suggestion: null,
         resolved: false,
-      });
+      })
 
-      assert.strictEqual(comment.id, 'comment-1');
-      assert.strictEqual(comment.reviewId, testReviewId);
-      assert.strictEqual(comment.filePath, 'src/index.ts');
-      assert.strictEqual(comment.lineNumber, 10);
-      assert.strictEqual(comment.lineType, 'added');
-      assert.strictEqual(comment.content, 'Great change!');
-      assert.strictEqual(comment.suggestion, null);
-      assert.strictEqual(comment.resolved, false);
-      assert.ok(comment.createdAt);
-      assert.ok(comment.updatedAt);
-    });
+      assert.strictEqual(comment.id, 'comment-1')
+      assert.strictEqual(comment.reviewId, testReviewId)
+      assert.strictEqual(comment.filePath, 'src/index.ts')
+      assert.strictEqual(comment.lineNumber, 10)
+      assert.strictEqual(comment.lineType, 'added')
+      assert.strictEqual(comment.content, 'Great change!')
+      assert.strictEqual(comment.suggestion, null)
+      assert.strictEqual(comment.resolved, false)
+      assert.ok(comment.createdAt)
+      assert.ok(comment.updatedAt)
+    })
 
     it('should create a file-level comment with null line number', () => {
       const comment = repo.create({
@@ -70,11 +70,11 @@ describe('CommentRepository', () => {
         content: 'File-level comment',
         suggestion: null,
         resolved: false,
-      });
+      })
 
-      assert.strictEqual(comment.lineNumber, null);
-      assert.strictEqual(comment.lineType, null);
-    });
+      assert.strictEqual(comment.lineNumber, null)
+      assert.strictEqual(comment.lineType, null)
+    })
 
     it('should create a comment with a suggestion', () => {
       const comment = repo.create({
@@ -86,11 +86,11 @@ describe('CommentRepository', () => {
         content: 'Consider this change',
         suggestion: 'const x = 1;',
         resolved: false,
-      });
+      })
 
-      assert.strictEqual(comment.suggestion, 'const x = 1;');
-    });
-  });
+      assert.strictEqual(comment.suggestion, 'const x = 1;')
+    })
+  })
 
   describe('findById', () => {
     it('should return a comment by id', () => {
@@ -103,18 +103,18 @@ describe('CommentRepository', () => {
         content: 'Test comment',
         suggestion: null,
         resolved: false,
-      });
+      })
 
-      const found = repo.findById('comment-1');
-      assert.ok(found);
-      assert.strictEqual(found.id, 'comment-1');
-    });
+      const found = repo.findById('comment-1')
+      assert.ok(found)
+      assert.strictEqual(found.id, 'comment-1')
+    })
 
     it('should return null for non-existent id', () => {
-      const found = repo.findById('non-existent');
-      assert.strictEqual(found, null);
-    });
-  });
+      const found = repo.findById('non-existent')
+      assert.strictEqual(found, null)
+    })
+  })
 
   describe('findByReview', () => {
     it('should return all comments for a review', () => {
@@ -127,7 +127,7 @@ describe('CommentRepository', () => {
         content: 'Comment 1',
         suggestion: null,
         resolved: false,
-      });
+      })
       repo.create({
         id: 'comment-2',
         reviewId: testReviewId,
@@ -137,17 +137,17 @@ describe('CommentRepository', () => {
         content: 'Comment 2',
         suggestion: null,
         resolved: false,
-      });
+      })
 
-      const comments = repo.findByReview(testReviewId);
-      assert.strictEqual(comments.length, 2);
-    });
+      const comments = repo.findByReview(testReviewId)
+      assert.strictEqual(comments.length, 2)
+    })
 
     it('should return empty array for review with no comments', () => {
-      const comments = repo.findByReview(testReviewId);
-      assert.strictEqual(comments.length, 0);
-    });
-  });
+      const comments = repo.findByReview(testReviewId)
+      assert.strictEqual(comments.length, 0)
+    })
+  })
 
   describe('findByFile', () => {
     it('should return comments for a specific file', () => {
@@ -160,7 +160,7 @@ describe('CommentRepository', () => {
         content: 'Comment 1',
         suggestion: null,
         resolved: false,
-      });
+      })
       repo.create({
         id: 'comment-2',
         reviewId: testReviewId,
@@ -170,13 +170,13 @@ describe('CommentRepository', () => {
         content: 'Comment 2',
         suggestion: null,
         resolved: false,
-      });
+      })
 
-      const comments = repo.findByFile(testReviewId, 'src/a.ts');
-      assert.strictEqual(comments.length, 1);
-      assert.strictEqual(comments[0].filePath, 'src/a.ts');
-    });
-  });
+      const comments = repo.findByFile(testReviewId, 'src/a.ts')
+      assert.strictEqual(comments.length, 1)
+      assert.strictEqual(comments[0].filePath, 'src/a.ts')
+    })
+  })
 
   describe('update', () => {
     it('should update comment content', () => {
@@ -189,12 +189,12 @@ describe('CommentRepository', () => {
         content: 'Original content',
         suggestion: null,
         resolved: false,
-      });
+      })
 
-      const updated = repo.update('comment-1', { content: 'Updated content' });
-      assert.ok(updated);
-      assert.strictEqual(updated.content, 'Updated content');
-    });
+      const updated = repo.update('comment-1', { content: 'Updated content' })
+      assert.ok(updated)
+      assert.strictEqual(updated.content, 'Updated content')
+    })
 
     it('should update suggestion', () => {
       repo.create({
@@ -206,18 +206,18 @@ describe('CommentRepository', () => {
         content: 'Comment',
         suggestion: null,
         resolved: false,
-      });
+      })
 
-      const updated = repo.update('comment-1', { suggestion: 'new code' });
-      assert.ok(updated);
-      assert.strictEqual(updated.suggestion, 'new code');
-    });
+      const updated = repo.update('comment-1', { suggestion: 'new code' })
+      assert.ok(updated)
+      assert.strictEqual(updated.suggestion, 'new code')
+    })
 
     it('should return null for non-existent id', () => {
-      const updated = repo.update('non-existent', { content: 'test' });
-      assert.strictEqual(updated, null);
-    });
-  });
+      const updated = repo.update('non-existent', { content: 'test' })
+      assert.strictEqual(updated, null)
+    })
+  })
 
   describe('setResolved', () => {
     it('should mark comment as resolved', () => {
@@ -230,12 +230,12 @@ describe('CommentRepository', () => {
         content: 'Comment',
         suggestion: null,
         resolved: false,
-      });
+      })
 
-      const resolved = repo.setResolved('comment-1', true);
-      assert.ok(resolved);
-      assert.strictEqual(resolved.resolved, true);
-    });
+      const resolved = repo.setResolved('comment-1', true)
+      assert.ok(resolved)
+      assert.strictEqual(resolved.resolved, true)
+    })
 
     it('should mark comment as unresolved', () => {
       repo.create({
@@ -247,13 +247,13 @@ describe('CommentRepository', () => {
         content: 'Comment',
         suggestion: null,
         resolved: true,
-      });
+      })
 
-      const unresolved = repo.setResolved('comment-1', false);
-      assert.ok(unresolved);
-      assert.strictEqual(unresolved.resolved, false);
-    });
-  });
+      const unresolved = repo.setResolved('comment-1', false)
+      assert.ok(unresolved)
+      assert.strictEqual(unresolved.resolved, false)
+    })
+  })
 
   describe('delete', () => {
     it('should delete a comment', () => {
@@ -266,18 +266,18 @@ describe('CommentRepository', () => {
         content: 'Comment',
         suggestion: null,
         resolved: false,
-      });
+      })
 
-      const deleted = repo.delete('comment-1');
-      assert.strictEqual(deleted, true);
-      assert.strictEqual(repo.findById('comment-1'), null);
-    });
+      const deleted = repo.delete('comment-1')
+      assert.strictEqual(deleted, true)
+      assert.strictEqual(repo.findById('comment-1'), null)
+    })
 
     it('should return false for non-existent id', () => {
-      const deleted = repo.delete('non-existent');
-      assert.strictEqual(deleted, false);
-    });
-  });
+      const deleted = repo.delete('non-existent')
+      assert.strictEqual(deleted, false)
+    })
+  })
 
   describe('deleteByReview', () => {
     it('should delete all comments for a review', () => {
@@ -290,7 +290,7 @@ describe('CommentRepository', () => {
         content: 'Comment 1',
         suggestion: null,
         resolved: false,
-      });
+      })
       repo.create({
         id: 'comment-2',
         reviewId: testReviewId,
@@ -300,13 +300,13 @@ describe('CommentRepository', () => {
         content: 'Comment 2',
         suggestion: null,
         resolved: false,
-      });
+      })
 
-      const count = repo.deleteByReview(testReviewId);
-      assert.strictEqual(count, 2);
-      assert.strictEqual(repo.findByReview(testReviewId).length, 0);
-    });
-  });
+      const count = repo.deleteByReview(testReviewId)
+      assert.strictEqual(count, 2)
+      assert.strictEqual(repo.findByReview(testReviewId).length, 0)
+    })
+  })
 
   describe('countByReview', () => {
     it('should count comments for a review', () => {
@@ -319,7 +319,7 @@ describe('CommentRepository', () => {
         content: 'Comment 1',
         suggestion: null,
         resolved: false,
-      });
+      })
       repo.create({
         id: 'comment-2',
         reviewId: testReviewId,
@@ -329,12 +329,12 @@ describe('CommentRepository', () => {
         content: 'Comment 2',
         suggestion: null,
         resolved: false,
-      });
+      })
 
-      const count = repo.countByReview(testReviewId);
-      assert.strictEqual(count, 2);
-    });
-  });
+      const count = repo.countByReview(testReviewId)
+      assert.strictEqual(count, 2)
+    })
+  })
 
   describe('countUnresolvedByReview', () => {
     it('should count only unresolved comments', () => {
@@ -347,7 +347,7 @@ describe('CommentRepository', () => {
         content: 'Comment 1',
         suggestion: null,
         resolved: false,
-      });
+      })
       repo.create({
         id: 'comment-2',
         reviewId: testReviewId,
@@ -357,10 +357,10 @@ describe('CommentRepository', () => {
         content: 'Comment 2',
         suggestion: null,
         resolved: true,
-      });
+      })
 
-      const count = repo.countUnresolvedByReview(testReviewId);
-      assert.strictEqual(count, 1);
-    });
-  });
-});
+      const count = repo.countUnresolvedByReview(testReviewId)
+      assert.strictEqual(count, 1)
+    })
+  })
+})

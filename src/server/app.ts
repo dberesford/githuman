@@ -1,38 +1,37 @@
 /**
  * Fastify application factory
  */
-import Fastify, { type FastifyInstance } from 'fastify';
-import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { fastifyRequestContext, requestContext } from '@fastify/request-context';
-import fastifySwagger from '@fastify/swagger';
-import fastifySwaggerUi from '@fastify/swagger-ui';
-import cors from '@fastify/cors';
-import fastifyStatic from '@fastify/static';
-import fastifySSE from '@fastify/sse';
-import type { FastifyPluginAsync } from 'fastify';
-import { existsSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import authPlugin from './plugins/auth.ts';
-import diffRoutes, { imageRoute } from './routes/diff.ts';
-import reviewRoutes from './routes/reviews.ts';
-import commentRoutes from './routes/comments.ts';
-import todoRoutes from './routes/todos.ts';
-import gitRoutes from './routes/git.ts';
-import eventsRoutes from './routes/events.ts';
-import type { ServerConfig } from './config.ts';
-import type { HealthResponse } from '../shared/types.ts';
-import { HealthResponseSchema } from './schemas/common.ts';
+import Fastify, { type FastifyInstance, type FastifyPluginAsync } from 'fastify'
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox'
+import { fastifyRequestContext, requestContext } from '@fastify/request-context'
+import fastifySwagger from '@fastify/swagger'
+import fastifySwaggerUi from '@fastify/swagger-ui'
+import cors from '@fastify/cors'
+import fastifyStatic from '@fastify/static'
+import fastifySSE from '@fastify/sse'
+import { existsSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import authPlugin from './plugins/auth.ts'
+import diffRoutes, { imageRoute } from './routes/diff.ts'
+import reviewRoutes from './routes/reviews.ts'
+import commentRoutes from './routes/comments.ts'
+import todoRoutes from './routes/todos.ts'
+import gitRoutes from './routes/git.ts'
+import eventsRoutes from './routes/events.ts'
+import type { ServerConfig } from './config.ts'
+import type { HealthResponse } from '../shared/types.ts'
+import { HealthResponseSchema } from './schemas/common.ts'
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export interface AppOptions {
   logger?: boolean;
   serveStatic?: boolean;
 }
 
-function getLoggerConfig(enabled: boolean) {
-  if (!enabled) return false;
+function getLoggerConfig (enabled: boolean) {
+  if (!enabled) return false
 
   // Use one-line-logger for pretty output when running in a TTY
   if (process.stdout.isTTY) {
@@ -40,29 +39,29 @@ function getLoggerConfig(enabled: boolean) {
       transport: {
         target: '@fastify/one-line-logger',
       },
-    };
+    }
   }
 
   // Default JSON logging for non-TTY (e.g., piped output, log files)
-  return true;
+  return true
 }
 
-export async function buildApp(
+export async function buildApp (
   config: ServerConfig,
   options: AppOptions = {}
 ): Promise<FastifyInstance> {
   const app = Fastify({
     logger: getLoggerConfig(options.logger ?? true),
-  }).withTypeProvider<TypeBoxTypeProvider>();
+  }).withTypeProvider<TypeBoxTypeProvider>()
 
   // Register request context plugin
-  await app.register(fastifyRequestContext);
+  await app.register(fastifyRequestContext)
 
   // Store request logger in context for access from services
   app.addHook('onRequest', (request, _reply, done) => {
-    request.requestContext.set('log', request.log);
-    done();
-  });
+    request.requestContext.set('log', request.log)
+    done()
+  })
 
   // Register Swagger for OpenAPI documentation
   await app.register(fastifySwagger, {
@@ -99,7 +98,7 @@ export async function buildApp(
       },
       security: config.authToken ? [{ bearerAuth: [] }] : [],
     },
-  });
+  })
 
   // Register Swagger UI
   await app.register(fastifySwaggerUi, {
@@ -108,21 +107,21 @@ export async function buildApp(
       docExpansion: 'list',
       deepLinking: true,
     },
-  });
+  })
 
   // Register CORS for development
   await app.register(cors, {
     origin: true,
-  });
+  })
 
   // Register SSE plugin for server-sent events
   // Cast needed because TypeBox type provider changes instance signature
-  await app.register(fastifySSE as unknown as FastifyPluginAsync);
+  await app.register(fastifySSE as unknown as FastifyPluginAsync)
 
   // Register auth plugin
   await app.register(authPlugin, {
     token: config.authToken,
-  });
+  })
 
   // Health check endpoint
   app.get<{ Reply: HealthResponse }>('/api/health', {
@@ -138,46 +137,46 @@ export async function buildApp(
     return {
       status: 'ok',
       authRequired: app.authEnabled,
-    };
-  });
+    }
+  })
 
   // Store config on app instance for routes to access
-  app.decorate('config', config);
+  app.decorate('config', config)
 
   // Register routes
-  await app.register(diffRoutes);
-  await app.register(imageRoute);
-  await app.register(reviewRoutes);
-  await app.register(commentRoutes);
-  await app.register(todoRoutes);
-  await app.register(gitRoutes);
-  await app.register(eventsRoutes);
+  await app.register(diffRoutes)
+  await app.register(imageRoute)
+  await app.register(reviewRoutes)
+  await app.register(commentRoutes)
+  await app.register(todoRoutes)
+  await app.register(gitRoutes)
+  await app.register(eventsRoutes)
 
   // Serve static files if enabled and dist/web exists
   if (options.serveStatic !== false) {
-    const staticPath = join(__dirname, '../../dist/web');
+    const staticPath = join(__dirname, '../../dist/web')
     if (existsSync(staticPath)) {
       await app.register(fastifyStatic, {
         root: staticPath,
         prefix: '/',
         wildcard: false,
-      });
+      })
 
       // SPA fallback - serve index.html for non-API routes
       app.setNotFoundHandler(async (request, reply) => {
         if (!request.url.startsWith('/api/')) {
-          return reply.sendFile('index.html');
+          return reply.sendFile('index.html')
         }
-        return reply.code(404).send({ error: 'Not found' });
-      });
+        return reply.code(404).send({ error: 'Not found' })
+      })
     }
   }
 
-  return app;
+  return app
 }
 
 // Re-export requestContext for use in services
-export { requestContext };
+export { requestContext }
 
 // Extend Fastify types
 declare module 'fastify' {

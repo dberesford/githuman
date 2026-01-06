@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { DiffFile } from '../../../src/web/components/diff/DiffFile';
-import type { DiffFile as DiffFileType } from '../../../src/shared/types';
+import { describe, it, expect } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import { DiffFile } from '../../../src/web/components/diff/DiffFile'
+import type { DiffFile as DiffFileType } from '../../../src/shared/types'
 
 describe('DiffFile', () => {
   const mockFile: DiffFileType = {
@@ -24,58 +24,58 @@ describe('DiffFile', () => {
         ],
       },
     ],
-  };
+  }
 
   it('renders file path', () => {
-    render(<DiffFile file={mockFile} />);
+    render(<DiffFile file={mockFile} />)
 
-    expect(screen.getByText('src/app.ts')).toBeDefined();
-  });
+    expect(screen.getByText('src/app.ts')).toBeDefined()
+  })
 
   it('renders status badge', () => {
-    render(<DiffFile file={mockFile} />);
+    render(<DiffFile file={mockFile} />)
 
-    expect(screen.getByText('Modified')).toBeDefined();
-  });
+    expect(screen.getByText('Modified')).toBeDefined()
+  })
 
   it('renders addition and deletion counts', () => {
-    render(<DiffFile file={mockFile} />);
+    render(<DiffFile file={mockFile} />)
 
-    expect(screen.getByText('+5')).toBeDefined();
-    expect(screen.getByText('-2')).toBeDefined();
-  });
+    expect(screen.getByText('+5')).toBeDefined()
+    expect(screen.getByText('-2')).toBeDefined()
+  })
 
   it('shows diff content when expanded', () => {
-    render(<DiffFile file={mockFile} defaultExpanded={true} />);
+    render(<DiffFile file={mockFile} defaultExpanded />)
 
-    expect(screen.getByText('line 1')).toBeDefined();
-    expect(screen.getByText('old line')).toBeDefined();
-    expect(screen.getByText('new line')).toBeDefined();
-  });
+    expect(screen.getByText('line 1')).toBeDefined()
+    expect(screen.getByText('old line')).toBeDefined()
+    expect(screen.getByText('new line')).toBeDefined()
+  })
 
   it('hides diff content when collapsed', () => {
-    render(<DiffFile file={mockFile} defaultExpanded={false} />);
+    render(<DiffFile file={mockFile} defaultExpanded={false} />)
 
-    expect(screen.queryByText('line 1')).toBeNull();
-    expect(screen.queryByText('old line')).toBeNull();
-  });
+    expect(screen.queryByText('line 1')).toBeNull()
+    expect(screen.queryByText('old line')).toBeNull()
+  })
 
   it('toggles expansion on click', () => {
-    render(<DiffFile file={mockFile} defaultExpanded={false} />);
+    render(<DiffFile file={mockFile} defaultExpanded={false} />)
 
     // Initially collapsed
-    expect(screen.queryByText('line 1')).toBeNull();
+    expect(screen.queryByText('line 1')).toBeNull()
 
     // Click to expand - use getAllByRole to handle multiple buttons
-    const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[0]); // First button is the expand/collapse button
-    expect(screen.getByText('line 1')).toBeDefined();
+    const buttons = screen.getAllByRole('button')
+    fireEvent.click(buttons[0]) // First button is the expand/collapse button
+    expect(screen.getByText('line 1')).toBeDefined()
 
     // Click to collapse - need to get buttons again as DOM may have changed
-    const expandedButtons = screen.getAllByRole('button');
-    fireEvent.click(expandedButtons[0]);
-    expect(screen.queryByText('line 1')).toBeNull();
-  });
+    const expandedButtons = screen.getAllByRole('button')
+    fireEvent.click(expandedButtons[0])
+    expect(screen.queryByText('line 1')).toBeNull()
+  })
 
   it('shows renamed file path format', () => {
     const renamedFile: DiffFileType = {
@@ -85,13 +85,13 @@ describe('DiffFile', () => {
       additions: 0,
       deletions: 0,
       hunks: [],
-    };
+    }
 
-    render(<DiffFile file={renamedFile} />);
+    render(<DiffFile file={renamedFile} />)
 
-    expect(screen.getByText('old-name.ts → new-name.ts')).toBeDefined();
-    expect(screen.getByText('Renamed')).toBeDefined();
-  });
+    expect(screen.getByText('old-name.ts → new-name.ts')).toBeDefined()
+    expect(screen.getByText('Renamed')).toBeDefined()
+  })
 
   it('shows message for renamed file without content changes', () => {
     const renamedFile: DiffFileType = {
@@ -101,12 +101,12 @@ describe('DiffFile', () => {
       additions: 0,
       deletions: 0,
       hunks: [],
-    };
+    }
 
-    render(<DiffFile file={renamedFile} defaultExpanded={true} />);
+    render(<DiffFile file={renamedFile} defaultExpanded />)
 
-    expect(screen.getByText('File renamed (no content changes)')).toBeDefined();
-  });
+    expect(screen.getByText('File renamed (no content changes)')).toBeDefined()
+  })
 
   it('renders added file badge', () => {
     const addedFile: DiffFileType = {
@@ -116,12 +116,12 @@ describe('DiffFile', () => {
       additions: 10,
       deletions: 0,
       hunks: [],
-    };
+    }
 
-    render(<DiffFile file={addedFile} />);
+    render(<DiffFile file={addedFile} />)
 
-    expect(screen.getByText('Added')).toBeDefined();
-  });
+    expect(screen.getByText('Added')).toBeDefined()
+  })
 
   it('renders deleted file badge', () => {
     const deletedFile: DiffFileType = {
@@ -131,10 +131,10 @@ describe('DiffFile', () => {
       additions: 0,
       deletions: 15,
       hunks: [],
-    };
+    }
 
-    render(<DiffFile file={deletedFile} />);
+    render(<DiffFile file={deletedFile} />)
 
-    expect(screen.getByText('Deleted')).toBeDefined();
-  });
-});
+    expect(screen.getByText('Deleted')).toBeDefined()
+  })
+})

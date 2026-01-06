@@ -1,8 +1,8 @@
 /**
  * Todos API client
  */
-import { api } from './client';
-import type { Todo, CreateTodoRequest, UpdateTodoRequest } from '../../shared/types';
+import { api } from './client'
+import type { Todo, CreateTodoRequest, UpdateTodoRequest } from '../../shared/types'
 
 export interface TodoStats {
   total: number;
@@ -17,15 +17,15 @@ export interface TodoFilters {
 
 export const todosApi = {
   getAll: (filters?: TodoFilters) => {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams()
     if (filters?.reviewId) {
-      params.set('reviewId', filters.reviewId);
+      params.set('reviewId', filters.reviewId)
     }
     if (filters?.completed !== undefined) {
-      params.set('completed', filters.completed ? '1' : '0');
+      params.set('completed', filters.completed ? '1' : '0')
     }
-    const query = params.toString();
-    return api.get<Todo[]>(`/todos${query ? `?${query}` : ''}`);
+    const query = params.toString()
+    return api.get<Todo[]>(`/todos${query ? `?${query}` : ''}`)
   },
 
   getById: (id: string) =>
@@ -54,4 +54,4 @@ export const todosApi = {
 
   move: (id: string, position: number) =>
     api.post<Todo>(`/todos/${id}/move`, { position }),
-};
+}

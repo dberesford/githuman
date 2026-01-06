@@ -1,7 +1,7 @@
 /**
  * Database migrations using PRAGMA user_version
  */
-import type { DatabaseSync } from 'node:sqlite';
+import type { DatabaseSync } from 'node:sqlite'
 
 export interface Migration {
   version: number;
@@ -118,42 +118,42 @@ export const migrations: Migration[] = [
       );
     `,
   },
-];
+]
 
-function getCurrentVersion(db: DatabaseSync): number {
-  const stmt = db.prepare('PRAGMA user_version');
-  const result = stmt.get() as { user_version: number };
-  return result.user_version;
+function getCurrentVersion (db: DatabaseSync): number {
+  const stmt = db.prepare('PRAGMA user_version')
+  const result = stmt.get() as { user_version: number }
+  return result.user_version
 }
 
-function setVersion(db: DatabaseSync, version: number): void {
-  db.exec(`PRAGMA user_version = ${version}`);
+function setVersion (db: DatabaseSync, version: number): void {
+  db.exec(`PRAGMA user_version = ${version}`)
 }
 
-export function migrate(db: DatabaseSync, migrations: Migration[]): void {
-  const currentVersion = getCurrentVersion(db);
+export function migrate (db: DatabaseSync, migrations: Migration[]): void {
+  const currentVersion = getCurrentVersion(db)
 
   // Sort migrations by version
-  const sorted = [...migrations].sort((a, b) => a.version - b.version);
+  const sorted = [...migrations].sort((a, b) => a.version - b.version)
 
   // Find pending migrations
-  const pending = sorted.filter((m) => m.version > currentVersion);
+  const pending = sorted.filter((m) => m.version > currentVersion)
 
   if (pending.length === 0) {
-    return;
+    return
   }
 
   for (const migration of pending) {
-    db.exec('BEGIN TRANSACTION');
+    db.exec('BEGIN TRANSACTION')
     try {
-      db.exec(migration.up);
-      setVersion(db, migration.version);
-      db.exec('COMMIT');
+      db.exec(migration.up)
+      setVersion(db, migration.version)
+      db.exec('COMMIT')
     } catch (err) {
-      db.exec('ROLLBACK');
+      db.exec('ROLLBACK')
       throw new Error(
         `Migration ${migration.version} (${migration.name}) failed: ${err}`
-      );
+      )
     }
   }
 }

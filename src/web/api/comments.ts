@@ -1,12 +1,12 @@
 /**
  * Comments API client
  */
-import { api } from './client';
+import { api } from './client'
 import type {
   Comment,
   CreateCommentRequest,
   UpdateCommentRequest,
-} from '../../shared/types';
+} from '../../shared/types'
 
 export interface CommentStats {
   total: number;
@@ -42,4 +42,4 @@ export const commentsApi = {
 
   unresolve: (commentId: string) =>
     api.post<Comment>(`/comments/${commentId}/unresolve`, {}),
-};
+}

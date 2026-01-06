@@ -1,7 +1,7 @@
 /**
  * Reviews API
  */
-import { api } from './client';
+import { api } from './client'
 import type {
   Review,
   DiffFile,
@@ -10,7 +10,7 @@ import type {
   CreateReviewRequest,
   UpdateReviewRequest,
   PaginatedResponse,
-} from '../../shared/types';
+} from '../../shared/types'
 
 export interface ReviewWithDetails extends Omit<Review, 'snapshotData'> {
   files: DiffFile[];
@@ -75,12 +75,12 @@ export interface StagedFilesResponse {
 // Reviews API
 export const reviewsApi = {
   list: (params?: { page?: number; pageSize?: number; status?: string }) => {
-    const searchParams = new URLSearchParams();
-    if (params?.page) searchParams.set('page', String(params.page));
-    if (params?.pageSize) searchParams.set('pageSize', String(params.pageSize));
-    if (params?.status) searchParams.set('status', params.status);
-    const query = searchParams.toString();
-    return api.get<PaginatedResponse<ReviewListItem>>(`/reviews${query ? `?${query}` : ''}`);
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', String(params.page))
+    if (params?.pageSize) searchParams.set('pageSize', String(params.pageSize))
+    if (params?.status) searchParams.set('status', params.status)
+    const query = searchParams.toString()
+    return api.get<PaginatedResponse<ReviewListItem>>(`/reviews${query ? `?${query}` : ''}`)
   },
 
   get: (id: string) => api.get<ReviewWithDetails>(`/reviews/${id}`),
@@ -93,7 +93,7 @@ export const reviewsApi = {
   delete: (id: string) => api.delete<{ success: boolean }>(`/reviews/${id}`),
 
   getStats: () => api.get<ReviewStats>('/reviews/stats'),
-};
+}
 
 // Diff API
 export const diffApi = {
@@ -102,12 +102,12 @@ export const diffApi = {
   getStagedFiles: () => api.get<StagedFilesResponse>('/diff/files'),
 
   getUnstaged: () => api.get<UnstagedDiffResponse>('/diff/unstaged'),
-};
+}
 
 // Repository Info API
 export const repoApi = {
   getInfo: () => api.get<RepositoryInfo>('/info'),
-};
+}
 
 // Git API types
 export interface BranchInfo {
@@ -133,4 +133,4 @@ export const gitApi = {
   stageFiles: (files: string[]) => api.post<StageResponse, { files: string[] }>('/git/stage', { files }),
   stageAll: () => api.post<StageResponse, Record<string, never>>('/git/stage-all', {}),
   unstageFiles: (files: string[]) => api.post<UnstageResponse, { files: string[] }>('/git/unstage', { files }),
-};
+}

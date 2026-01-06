@@ -1,17 +1,17 @@
 /**
  * Diff API routes
  */
-import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { GitService } from '../services/git.service.ts';
-import { parseDiff, getDiffSummary } from '../services/diff.service.ts';
-import { ErrorSchema } from '../schemas/common.ts';
+import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
+import { GitService } from '../services/git.service.ts'
+import { parseDiff, getDiffSummary } from '../services/diff.service.ts'
+import { ErrorSchema } from '../schemas/common.ts'
 
 const DiffLineSchema = Type.Object({
   type: Type.Union([Type.Literal('added'), Type.Literal('removed'), Type.Literal('context')]),
   content: Type.String(),
   oldLineNumber: Type.Union([Type.Integer(), Type.Null()]),
   newLineNumber: Type.Union([Type.Integer(), Type.Null()]),
-});
+})
 
 const DiffHunkSchema = Type.Object({
   oldStart: Type.Integer(),
@@ -19,7 +19,7 @@ const DiffHunkSchema = Type.Object({
   newStart: Type.Integer(),
   newLines: Type.Integer(),
   lines: Type.Array(DiffLineSchema),
-});
+})
 
 const DiffFileSchema = Type.Object(
   {
@@ -36,7 +36,7 @@ const DiffFileSchema = Type.Object(
     hunks: Type.Array(DiffHunkSchema),
   },
   { description: 'Diff file' }
-);
+)
 
 const DiffSummarySchema = Type.Object(
   {
@@ -49,7 +49,7 @@ const DiffSummarySchema = Type.Object(
     filesRenamed: Type.Integer({ description: 'Number of files renamed' }),
   },
   { description: 'Diff summary statistics' }
-);
+)
 
 const RepositoryInfoSchema = Type.Object(
   {
@@ -59,7 +59,7 @@ const RepositoryInfoSchema = Type.Object(
     path: Type.String({ description: 'Repository path' }),
   },
   { description: 'Repository information' }
-);
+)
 
 const StagedDiffResponseSchema = Type.Object(
   {
@@ -68,7 +68,7 @@ const StagedDiffResponseSchema = Type.Object(
     repository: RepositoryInfoSchema,
   },
   { description: 'Staged diff response' }
-);
+)
 
 const UnstagedDiffResponseSchema = Type.Object(
   {
@@ -77,7 +77,7 @@ const UnstagedDiffResponseSchema = Type.Object(
     repository: RepositoryInfoSchema,
   },
   { description: 'Unstaged diff response' }
-);
+)
 
 const StagedFileSchema = Type.Object({
   path: Type.String({ description: 'File path' }),
@@ -90,7 +90,7 @@ const StagedFileSchema = Type.Object({
   ]),
   additions: Type.Integer({ description: 'Lines added' }),
   deletions: Type.Integer({ description: 'Lines deleted' }),
-});
+})
 
 const StagedFilesResponseSchema = Type.Object(
   {
@@ -98,14 +98,14 @@ const StagedFilesResponseSchema = Type.Object(
     hasStagedChanges: Type.Boolean({ description: 'Whether there are staged changes' }),
   },
   { description: 'Staged files response' }
-);
+)
 
 const RepositoryInfoExtendedSchema = Type.Intersect([
   RepositoryInfoSchema,
   Type.Object({
     hasCommits: Type.Boolean({ description: 'Whether repository has commits' }),
   }),
-]);
+])
 
 const FileVersionQuerystringSchema = Type.Object({
   version: Type.Optional(
@@ -114,7 +114,7 @@ const FileVersionQuerystringSchema = Type.Object({
       description: 'File version to retrieve',
     })
   ),
-});
+})
 
 const FileContentResponseSchema = Type.Object(
   {
@@ -125,11 +125,11 @@ const FileContentResponseSchema = Type.Object(
     lineCount: Type.Integer({ description: 'Number of lines' }),
   },
   { description: 'File content response' }
-);
+)
 
 const WildcardParamsSchema = Type.Object({
   '*': Type.String({ description: 'File path' }),
-});
+})
 
 const diffRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   /**
@@ -147,14 +147,14 @@ const diffRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const gitService = new GitService(fastify.config.repositoryPath);
+    const gitService = new GitService(fastify.config.repositoryPath)
 
     // Check if it's a git repository
     if (!(await gitService.isRepo())) {
       return reply.code(400).send({
         error: 'Not a git repository',
         code: 'NOT_GIT_REPO',
-      });
+      })
     }
 
     // Check if the repository has any commits
@@ -162,12 +162,12 @@ const diffRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       return reply.code(400).send({
         error: 'Repository has no commits yet. Create an initial commit first.',
         code: 'NO_COMMITS',
-      });
+      })
     }
 
     // Check if there are staged changes
     if (!(await gitService.hasStagedChanges())) {
-      const repoInfo = await gitService.getRepositoryInfo();
+      const repoInfo = await gitService.getRepositoryInfo()
       return {
         files: [],
         summary: {
@@ -180,21 +180,21 @@ const diffRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
           filesRenamed: 0,
         },
         repository: repoInfo,
-      };
+      }
     }
 
     // Get and parse the diff
-    const diffText = await gitService.getStagedDiff();
-    const files = parseDiff(diffText);
-    const summary = getDiffSummary(files);
-    const repository = await gitService.getRepositoryInfo();
+    const diffText = await gitService.getStagedDiff()
+    const files = parseDiff(diffText)
+    const summary = getDiffSummary(files)
+    const repository = await gitService.getRepositoryInfo()
 
     return {
       files,
       summary,
       repository,
-    };
-  });
+    }
+  })
 
   /**
    * GET /api/diff/unstaged
@@ -211,14 +211,14 @@ const diffRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const gitService = new GitService(fastify.config.repositoryPath);
+    const gitService = new GitService(fastify.config.repositoryPath)
 
     // Check if it's a git repository
     if (!(await gitService.isRepo())) {
       return reply.code(400).send({
         error: 'Not a git repository',
         code: 'NOT_GIT_REPO',
-      });
+      })
     }
 
     // Check if the repository has any commits
@@ -226,12 +226,12 @@ const diffRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       return reply.code(400).send({
         error: 'Repository has no commits yet. Create an initial commit first.',
         code: 'NO_COMMITS',
-      });
+      })
     }
 
     // Check if there are unstaged changes
     if (!(await gitService.hasUnstagedChanges())) {
-      const repoInfo = await gitService.getRepositoryInfo();
+      const repoInfo = await gitService.getRepositoryInfo()
       return {
         files: [],
         summary: {
@@ -244,21 +244,21 @@ const diffRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
           filesRenamed: 0,
         },
         repository: repoInfo,
-      };
+      }
     }
 
     // Get and parse the diff
-    const diffText = await gitService.getUnstagedDiff();
-    const files = parseDiff(diffText);
-    const summary = getDiffSummary(files);
-    const repository = await gitService.getRepositoryInfo();
+    const diffText = await gitService.getUnstagedDiff()
+    const files = parseDiff(diffText)
+    const summary = getDiffSummary(files)
+    const repository = await gitService.getRepositoryInfo()
 
     return {
       files,
       summary,
       repository,
-    };
-  });
+    }
+  })
 
   /**
    * GET /api/diff/files
@@ -275,45 +275,45 @@ const diffRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const gitService = new GitService(fastify.config.repositoryPath);
+    const gitService = new GitService(fastify.config.repositoryPath)
 
     // Check if it's a git repository
     if (!(await gitService.isRepo())) {
       return reply.code(400).send({
         error: 'Not a git repository',
-      });
+      })
     }
 
-    const hasStagedChanges = await gitService.hasStagedChanges();
+    const hasStagedChanges = await gitService.hasStagedChanges()
 
     if (!hasStagedChanges) {
       return {
         files: [],
         hasStagedChanges: false,
-      };
+      }
     }
 
     // Get staged files and stats
-    const stagedFiles = await gitService.getStagedFiles();
-    const stats = await gitService.getStagedDiffStats();
+    const stagedFiles = await gitService.getStagedFiles()
+    const stats = await gitService.getStagedDiffStats()
 
     // Merge file info with stats
     const files = stagedFiles.map((file) => {
-      const fileStat = stats.files.find((s) => s.path === file.path);
+      const fileStat = stats.files.find((s) => s.path === file.path)
       return {
         path: file.path,
         oldPath: file.oldPath,
         status: file.status,
         additions: fileStat?.additions ?? 0,
         deletions: fileStat?.deletions ?? 0,
-      };
-    });
+      }
+    })
 
     return {
       files,
       hasStagedChanges: true,
-    };
-  });
+    }
+  })
 
   /**
    * GET /api/info
@@ -330,24 +330,24 @@ const diffRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const gitService = new GitService(fastify.config.repositoryPath);
+    const gitService = new GitService(fastify.config.repositoryPath)
 
     // Check if it's a git repository
     if (!(await gitService.isRepo())) {
       return reply.code(400).send({
         error: 'Not a git repository',
         code: 'NOT_GIT_REPO',
-      });
+      })
     }
 
-    const hasCommits = await gitService.hasCommits();
-    const repoInfo = await gitService.getRepositoryInfo();
+    const hasCommits = await gitService.hasCommits()
+    const repoInfo = await gitService.getRepositoryInfo()
 
     return {
       ...repoInfo,
       hasCommits,
-    };
-  });
+    }
+  })
 
   /**
    * GET /api/diff/file/:path
@@ -369,29 +369,29 @@ const diffRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const filePath = request.params['*'];
-    const version = request.query.version ?? 'staged';
+    const filePath = request.params['*']
+    const version = request.query.version ?? 'staged'
 
     if (!filePath) {
-      return reply.code(400).send({ error: 'File path is required' });
+      return reply.code(400).send({ error: 'File path is required' })
     }
 
-    const gitService = new GitService(fastify.config.repositoryPath);
+    const gitService = new GitService(fastify.config.repositoryPath)
 
     if (!(await gitService.isRepo())) {
-      return reply.code(400).send({ error: 'Not a git repository' });
+      return reply.code(400).send({ error: 'Not a git repository' })
     }
 
     const content =
       version === 'head'
         ? await gitService.getHeadFileContent(filePath)
-        : await gitService.getStagedFileContent(filePath);
+        : await gitService.getStagedFileContent(filePath)
 
     if (content === null) {
-      return reply.code(404).send({ error: 'File not found' });
+      return reply.code(404).send({ error: 'File not found' })
     }
 
-    const lines = content.split('\n');
+    const lines = content.split('\n')
 
     return {
       path: filePath,
@@ -399,13 +399,13 @@ const diffRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       content,
       lines,
       lineCount: lines.length,
-    };
-  });
-};
+    }
+  })
+}
 
 // Helper to get MIME type from file extension
-function getMimeType(filePath: string): string {
-  const ext = filePath.split('.').pop()?.toLowerCase() ?? '';
+function getMimeType (filePath: string): string {
+  const ext = filePath.split('.').pop()?.toLowerCase() ?? ''
   const mimeTypes: Record<string, string> = {
     png: 'image/png',
     jpg: 'image/jpeg',
@@ -415,8 +415,8 @@ function getMimeType(filePath: string): string {
     webp: 'image/webp',
     ico: 'image/x-icon',
     bmp: 'image/bmp',
-  };
-  return mimeTypes[ext] || 'application/octet-stream';
+  }
+  return mimeTypes[ext] || 'application/octet-stream'
 }
 
 /**
@@ -435,32 +435,32 @@ const imageRoute: FastifyPluginAsyncTypebox = async (fastify) => {
       querystring: FileVersionQuerystringSchema,
     },
   }, async (request, reply) => {
-    const filePath = request.params['*'];
-    const version = request.query.version ?? 'staged';
+    const filePath = request.params['*']
+    const version = request.query.version ?? 'staged'
 
     if (!filePath) {
-      return reply.code(400).send({ error: 'File path is required' });
+      return reply.code(400).send({ error: 'File path is required' })
     }
 
-    const gitService = new GitService(fastify.config.repositoryPath);
+    const gitService = new GitService(fastify.config.repositoryPath)
 
     if (!(await gitService.isRepo())) {
-      return reply.code(400).send({ error: 'Not a git repository' });
+      return reply.code(400).send({ error: 'Not a git repository' })
     }
 
     const content =
       version === 'head'
         ? await gitService.getHeadBinaryContent(filePath)
-        : await gitService.getStagedBinaryContent(filePath);
+        : await gitService.getStagedBinaryContent(filePath)
 
     if (content === null) {
-      return reply.code(404).send({ error: 'Image not found' });
+      return reply.code(404).send({ error: 'Image not found' })
     }
 
-    const mimeType = getMimeType(filePath);
-    return reply.header('Content-Type', mimeType).send(content);
-  });
-};
+    const mimeType = getMimeType(filePath)
+    return reply.header('Content-Type', mimeType).send(content)
+  })
+}
 
-export { imageRoute };
-export default diffRoutes;
+export { imageRoute }
+export default diffRoutes

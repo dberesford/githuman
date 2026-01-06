@@ -1,12 +1,11 @@
 /**
  * Todo API routes
  */
-import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { randomUUID } from 'node:crypto';
-import { getDatabase } from '../db/index.ts';
-import { TodoRepository } from '../repositories/todo.repo.ts';
-import type { Todo } from '../../shared/types.ts';
-import { ErrorSchema, SuccessSchema } from '../schemas/common.ts';
+import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
+import { randomUUID } from 'node:crypto'
+import { getDatabase } from '../db/index.ts'
+import { TodoRepository } from '../repositories/todo.repo.ts'
+import { ErrorSchema, SuccessSchema } from '../schemas/common.ts'
 
 const TodoSchema = Type.Object(
   {
@@ -21,9 +20,9 @@ const TodoSchema = Type.Object(
     updatedAt: Type.String({ format: 'date-time', description: 'Last update timestamp' }),
   },
   { description: 'Todo item' }
-);
+)
 
-const TodosArraySchema = Type.Array(TodoSchema, { description: 'List of todos' });
+const TodosArraySchema = Type.Array(TodoSchema, { description: 'List of todos' })
 
 const CreateTodoSchema = Type.Object(
   {
@@ -31,7 +30,7 @@ const CreateTodoSchema = Type.Object(
     reviewId: Type.Optional(Type.String({ description: 'Associated review ID' })),
   },
   { description: 'Create todo request' }
-);
+)
 
 const UpdateTodoSchema = Type.Object(
   {
@@ -39,7 +38,7 @@ const UpdateTodoSchema = Type.Object(
     completed: Type.Optional(Type.Boolean({ description: 'Updated completion status' })),
   },
   { description: 'Update todo request' }
-);
+)
 
 const TodoQuerystringSchema = Type.Object(
   {
@@ -47,7 +46,7 @@ const TodoQuerystringSchema = Type.Object(
     completed: Type.Optional(Type.String({ description: 'Filter by completion status (1, true, 0, false)' })),
   },
   { description: 'Todo list filters' }
-);
+)
 
 const TodoStatsSchema = Type.Object(
   {
@@ -56,39 +55,39 @@ const TodoStatsSchema = Type.Object(
     pending: Type.Integer({ description: 'Number of pending todos' }),
   },
   { description: 'Todo statistics' }
-);
+)
 
 const IdParamsSchema = Type.Object({
   id: Type.String({ description: 'Todo ID (UUID)' }),
-});
+})
 
 const ReorderTodosSchema = Type.Object(
   {
     orderedIds: Type.Array(Type.String(), { description: 'Array of todo IDs in desired order' }),
   },
   { description: 'Reorder todos request' }
-);
+)
 
 const ReorderResultSchema = Type.Object(
   {
     updated: Type.Integer({ description: 'Number of todos updated' }),
   },
   { description: 'Reorder result' }
-);
+)
 
 const MoveTodoSchema = Type.Object(
   {
     position: Type.Integer({ minimum: 0, description: 'New position for the todo' }),
   },
   { description: 'Move todo request' }
-);
+)
 
 const DeletedCountSchema = Type.Object(
   {
     deleted: Type.Integer({ description: 'Number of items deleted' }),
   },
   { description: 'Deleted count response' }
-);
+)
 
 export interface TodoStats {
   total: number;
@@ -98,9 +97,9 @@ export interface TodoStats {
 
 const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   const getRepo = () => {
-    const db = getDatabase();
-    return new TodoRepository(db);
-  };
+    const db = getDatabase()
+    return new TodoRepository(db)
+  }
 
   /**
    * GET /api/todos
@@ -117,23 +116,23 @@ const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request) => {
-    const repo = getRepo();
-    const { reviewId, completed } = request.query;
+    const repo = getRepo()
+    const { reviewId, completed } = request.query
 
     if (reviewId && completed !== undefined) {
-      return repo.findByReviewAndCompleted(reviewId, completed === '1' || completed === 'true');
+      return repo.findByReviewAndCompleted(reviewId, completed === '1' || completed === 'true')
     }
 
     if (reviewId) {
-      return repo.findByReview(reviewId);
+      return repo.findByReview(reviewId)
     }
 
     if (completed !== undefined) {
-      return repo.findByCompleted(completed === '1' || completed === 'true');
+      return repo.findByCompleted(completed === '1' || completed === 'true')
     }
 
-    return repo.findAll();
-  });
+    return repo.findAll()
+  })
 
   /**
    * GET /api/todos/stats
@@ -149,13 +148,13 @@ const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async () => {
-    const repo = getRepo();
+    const repo = getRepo()
     return {
       total: repo.countAll(),
       completed: repo.countCompleted(),
       pending: repo.countPending(),
-    };
-  });
+    }
+  })
 
   /**
    * POST /api/todos
@@ -172,19 +171,19 @@ const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const repo = getRepo();
-    const { content, reviewId } = request.body;
+    const repo = getRepo()
+    const { content, reviewId } = request.body
 
     const todo = repo.create({
       id: randomUUID(),
       content,
       completed: false,
       reviewId: reviewId ?? null,
-    });
+    })
 
-    reply.code(201);
-    return todo;
-  });
+    reply.code(201)
+    return todo
+  })
 
   /**
    * GET /api/todos/:id
@@ -202,17 +201,17 @@ const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const repo = getRepo();
-    const todo = repo.findById(request.params.id);
+    const repo = getRepo()
+    const todo = repo.findById(request.params.id)
 
     if (!todo) {
       return reply.code(404).send({
         error: 'Todo not found',
-      });
+      })
     }
 
-    return todo;
-  });
+    return todo
+  })
 
   /**
    * PATCH /api/todos/:id
@@ -231,17 +230,17 @@ const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const repo = getRepo();
-    const todo = repo.update(request.params.id, request.body);
+    const repo = getRepo()
+    const todo = repo.update(request.params.id, request.body)
 
     if (!todo) {
       return reply.code(404).send({
         error: 'Todo not found',
-      });
+      })
     }
 
-    return todo;
-  });
+    return todo
+  })
 
   /**
    * DELETE /api/todos/:id
@@ -259,17 +258,17 @@ const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const repo = getRepo();
-    const deleted = repo.delete(request.params.id);
+    const repo = getRepo()
+    const deleted = repo.delete(request.params.id)
 
     if (!deleted) {
       return reply.code(404).send({
         error: 'Todo not found',
-      });
+      })
     }
 
-    return { success: true };
-  });
+    return { success: true }
+  })
 
   /**
    * POST /api/todos/:id/toggle
@@ -287,17 +286,17 @@ const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const repo = getRepo();
-    const todo = repo.toggle(request.params.id);
+    const repo = getRepo()
+    const todo = repo.toggle(request.params.id)
 
     if (!todo) {
       return reply.code(404).send({
         error: 'Todo not found',
-      });
+      })
     }
 
-    return todo;
-  });
+    return todo
+  })
 
   /**
    * DELETE /api/todos/completed
@@ -313,10 +312,10 @@ const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async () => {
-    const repo = getRepo();
-    const count = repo.deleteCompleted();
-    return { deleted: count };
-  });
+    const repo = getRepo()
+    const count = repo.deleteCompleted()
+    return { deleted: count }
+  })
 
   /**
    * POST /api/todos/reorder
@@ -333,11 +332,11 @@ const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request) => {
-    const repo = getRepo();
-    const { orderedIds } = request.body;
-    const updated = repo.reorder(orderedIds);
-    return { updated };
-  });
+    const repo = getRepo()
+    const { orderedIds } = request.body
+    const updated = repo.reorder(orderedIds)
+    return { updated }
+  })
 
   /**
    * POST /api/todos/:id/move
@@ -356,18 +355,18 @@ const todoRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const repo = getRepo();
-    const { position } = request.body;
-    const todo = repo.move(request.params.id, position);
+    const repo = getRepo()
+    const { position } = request.body
+    const todo = repo.move(request.params.id, position)
 
     if (!todo) {
       return reply.code(404).send({
         error: 'Todo not found',
-      });
+      })
     }
 
-    return todo;
-  });
-};
+    return todo
+  })
+}
 
-export default todoRoutes;
+export default todoRoutes

@@ -1,13 +1,13 @@
 /**
  * Comment API routes
  */
-import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { getDatabase } from '../db/index.ts';
+import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
+import { getDatabase } from '../db/index.ts'
 import {
   CommentService,
   CommentError,
-} from '../services/comment.service.ts';
-import { ErrorSchema, SuccessSchema } from '../schemas/common.ts';
+} from '../services/comment.service.ts'
+import { ErrorSchema, SuccessSchema } from '../schemas/common.ts'
 
 const CommentSchema = Type.Object(
   {
@@ -30,11 +30,11 @@ const CommentSchema = Type.Object(
     updatedAt: Type.String({ format: 'date-time', description: 'Last update timestamp' }),
   },
   { description: 'Comment' }
-);
+)
 
 const CommentsArraySchema = Type.Array(CommentSchema, {
   description: 'List of comments',
-});
+})
 
 const CreateCommentSchema = Type.Object(
   {
@@ -47,7 +47,7 @@ const CreateCommentSchema = Type.Object(
     suggestion: Type.Optional(Type.String({ description: 'Code suggestion' })),
   },
   { description: 'Create comment request' }
-);
+)
 
 const UpdateCommentSchema = Type.Object(
   {
@@ -55,19 +55,19 @@ const UpdateCommentSchema = Type.Object(
     suggestion: Type.Optional(Type.String({ description: 'Updated suggestion' })),
   },
   { description: 'Update comment request' }
-);
+)
 
 const ReviewIdParamsSchema = Type.Object({
   reviewId: Type.String({ description: 'Review ID' }),
-});
+})
 
 const CommentIdParamsSchema = Type.Object({
   id: Type.String({ description: 'Comment ID' }),
-});
+})
 
 const FileQuerystringSchema = Type.Object({
   filePath: Type.Optional(Type.String({ description: 'Filter by file path' })),
-});
+})
 
 const CommentStatsSchema = Type.Object(
   {
@@ -77,13 +77,13 @@ const CommentStatsSchema = Type.Object(
     withSuggestions: Type.Integer({ description: 'Comments with suggestions' }),
   },
   { description: 'Comment statistics' }
-);
+)
 
 const commentRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   const getService = () => {
-    const db = getDatabase();
-    return new CommentService(db);
-  };
+    const db = getDatabase()
+    return new CommentService(db)
+  }
 
   /**
    * GET /api/reviews/:reviewId/comments
@@ -101,16 +101,16 @@ const commentRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const service = getService();
-    const { reviewId } = request.params;
-    const { filePath } = request.query;
+    const service = getService()
+    const { reviewId } = request.params
+    const { filePath } = request.query
 
     if (filePath) {
-      return service.getByFile(reviewId, filePath);
+      return service.getByFile(reviewId, filePath)
     }
 
-    return service.getByReview(reviewId);
-  });
+    return service.getByReview(reviewId)
+  })
 
   /**
    * GET /api/reviews/:reviewId/comments/stats
@@ -127,9 +127,9 @@ const commentRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request) => {
-    const service = getService();
-    return service.getStats(request.params.reviewId);
-  });
+    const service = getService()
+    return service.getStats(request.params.reviewId)
+  })
 
   /**
    * POST /api/reviews/:reviewId/comments
@@ -149,23 +149,23 @@ const commentRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const service = getService();
+    const service = getService()
 
     try {
-      const comment = service.create(request.params.reviewId, request.body);
-      reply.code(201);
-      return comment;
+      const comment = service.create(request.params.reviewId, request.body)
+      reply.code(201)
+      return comment
     } catch (err) {
       if (err instanceof CommentError) {
-        const statusCode = err.code === 'REVIEW_NOT_FOUND' ? 404 : 400;
+        const statusCode = err.code === 'REVIEW_NOT_FOUND' ? 404 : 400
         return reply.code(statusCode).send({
           error: err.message,
           code: err.code,
-        });
+        })
       }
-      throw err;
+      throw err
     }
-  });
+  })
 
   /**
    * GET /api/comments/:id
@@ -183,17 +183,17 @@ const commentRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const service = getService();
-    const comment = service.getById(request.params.id);
+    const service = getService()
+    const comment = service.getById(request.params.id)
 
     if (!comment) {
       return reply.code(404).send({
         error: 'Comment not found',
-      });
+      })
     }
 
-    return comment;
-  });
+    return comment
+  })
 
   /**
    * PATCH /api/comments/:id
@@ -212,17 +212,17 @@ const commentRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const service = getService();
-    const comment = service.update(request.params.id, request.body);
+    const service = getService()
+    const comment = service.update(request.params.id, request.body)
 
     if (!comment) {
       return reply.code(404).send({
         error: 'Comment not found',
-      });
+      })
     }
 
-    return comment;
-  });
+    return comment
+  })
 
   /**
    * DELETE /api/comments/:id
@@ -240,17 +240,17 @@ const commentRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const service = getService();
-    const deleted = service.delete(request.params.id);
+    const service = getService()
+    const deleted = service.delete(request.params.id)
 
     if (!deleted) {
       return reply.code(404).send({
         error: 'Comment not found',
-      });
+      })
     }
 
-    return { success: true };
-  });
+    return { success: true }
+  })
 
   /**
    * POST /api/comments/:id/resolve
@@ -268,17 +268,17 @@ const commentRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const service = getService();
-    const comment = service.resolve(request.params.id);
+    const service = getService()
+    const comment = service.resolve(request.params.id)
 
     if (!comment) {
       return reply.code(404).send({
         error: 'Comment not found',
-      });
+      })
     }
 
-    return comment;
-  });
+    return comment
+  })
 
   /**
    * POST /api/comments/:id/unresolve
@@ -296,17 +296,17 @@ const commentRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       },
     },
   }, async (request, reply) => {
-    const service = getService();
-    const comment = service.unresolve(request.params.id);
+    const service = getService()
+    const comment = service.unresolve(request.params.id)
 
     if (!comment) {
       return reply.code(404).send({
         error: 'Comment not found',
-      });
+      })
     }
 
-    return comment;
-  });
-};
+    return comment
+  })
+}
 
-export default commentRoutes;
+export default commentRoutes

@@ -1,11 +1,11 @@
 /**
  * Serve command - start the review server
  */
-import { parseArgs } from 'node:util';
-import open from 'open';
-import { startServer, createConfig } from '../../server/index.ts';
+import { parseArgs } from 'node:util'
+import open from 'open'
+import { startServer, createConfig } from '../../server/index.ts'
 
-function printHelp() {
+function printHelp () {
   console.log(`
 Usage: githuman serve [options]
 
@@ -17,10 +17,10 @@ Options:
   --host <string>        Host to bind to (default: localhost)
   --auth <token>         Enable token authentication
   -h, --help             Show this help message
-`);
+`)
 }
 
-export async function serveCommand(args: string[]) {
+export async function serveCommand (args: string[]) {
   const { values } = parseArgs({
     args,
     allowNegative: true,
@@ -31,25 +31,25 @@ export async function serveCommand(args: string[]) {
       auth: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
     },
-  });
+  })
 
   if (values.help) {
-    printHelp();
-    process.exit(0);
+    printHelp()
+    process.exit(0)
   }
 
   const config = createConfig({
     port: parseInt(values.port!, 10),
     host: values.host,
     authToken: values.auth,
-  });
+  })
 
   // Start the server
-  await startServer(config);
+  await startServer(config)
 
   // Open browser if requested
   if (values.open) {
-    const url = `http://${config.host}:${config.port}`;
-    await open(url);
+    const url = `http://${config.host}:${config.port}`
+    await open(url)
   }
 }

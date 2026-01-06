@@ -1,8 +1,8 @@
 /**
  * Todo input component for adding new todos
  */
-import { useState, type FormEvent, type KeyboardEvent } from 'react';
-import { cn } from '../../lib/utils';
+import { useState, type FormEvent, type KeyboardEvent } from 'react'
+import { cn } from '../../lib/utils'
 
 interface TodoInputProps {
   onAdd: (content: string) => void;
@@ -10,28 +10,28 @@ interface TodoInputProps {
   placeholder?: string;
 }
 
-export function TodoInput({ onAdd, disabled, placeholder = 'Add a todo...' }: TodoInputProps) {
-  const [content, setContent] = useState('');
+export function TodoInput ({ onAdd, disabled, placeholder = 'Add a todo...' }: TodoInputProps) {
+  const [content, setContent] = useState('')
 
   const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    const trimmed = content.trim();
+    e.preventDefault()
+    const trimmed = content.trim()
     if (trimmed) {
-      onAdd(trimmed);
-      setContent('');
+      onAdd(trimmed)
+      setContent('')
     }
-  };
+  }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Escape') {
-      setContent('');
+      setContent('')
     }
-  };
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
+    <form onSubmit={handleSubmit} className='flex gap-2'>
       <input
-        type="text"
+        type='text'
         value={content}
         onChange={(e) => setContent(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -43,7 +43,7 @@ export function TodoInput({ onAdd, disabled, placeholder = 'Add a todo...' }: To
         )}
       />
       <button
-        type="submit"
+        type='submit'
         disabled={disabled || !content.trim()}
         className={cn(
           'gh-btn gh-btn-primary text-sm',
@@ -53,5 +53,5 @@ export function TodoInput({ onAdd, disabled, placeholder = 'Add a todo...' }: To
         Add
       </button>
     </form>
-  );
+  )
 }

@@ -1,51 +1,51 @@
 /**
  * Database connection and initialization
  */
-import { DatabaseSync } from 'node:sqlite';
-import fs from 'node:fs';
-import path from 'node:path';
-import { migrate, migrations } from './migrations.ts';
+import { DatabaseSync } from 'node:sqlite'
+import fs from 'node:fs'
+import path from 'node:path'
+import { migrate, migrations } from './migrations.ts'
 
-let db: DatabaseSync | null = null;
+let db: DatabaseSync | null = null
 
-export function getDatabase(): DatabaseSync {
+export function getDatabase (): DatabaseSync {
   if (!db) {
-    throw new Error('Database not initialized. Call initDatabase() first.');
+    throw new Error('Database not initialized. Call initDatabase() first.')
   }
-  return db;
+  return db
 }
 
-export function initDatabase(dbPath: string): DatabaseSync {
+export function initDatabase (dbPath: string): DatabaseSync {
   // Ensure directory exists
-  const dir = path.dirname(dbPath);
+  const dir = path.dirname(dbPath)
   if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+    fs.mkdirSync(dir, { recursive: true })
   }
 
   db = new DatabaseSync(dbPath, {
     enableForeignKeyConstraints: true,
-  });
+  })
 
   // Run migrations
-  migrate(db, migrations);
+  migrate(db, migrations)
 
-  return db;
+  return db
 }
 
-export function closeDatabase(): void {
+export function closeDatabase (): void {
   if (db) {
-    db.close();
-    db = null;
+    db.close()
+    db = null
   }
 }
 
 /**
  * Create an in-memory database for testing
  */
-export function createTestDatabase(): DatabaseSync {
+export function createTestDatabase (): DatabaseSync {
   const testDb = new DatabaseSync(':memory:', {
     enableForeignKeyConstraints: true,
-  });
-  migrate(testDb, migrations);
-  return testDb;
+  })
+  migrate(testDb, migrations)
+  return testDb
 }

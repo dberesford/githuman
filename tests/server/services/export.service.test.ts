@@ -1,25 +1,25 @@
-import { describe, it, beforeEach, after } from 'node:test';
-import assert from 'node:assert';
-import { DatabaseSync } from 'node:sqlite';
-import { ExportService } from '../../../src/server/services/export.service.ts';
-import { ReviewRepository } from '../../../src/server/repositories/review.repo.ts';
-import { CommentRepository } from '../../../src/server/repositories/comment.repo.ts';
-import { migrate, migrations } from '../../../src/server/db/migrations.ts';
+import { describe, it, beforeEach, after } from 'node:test'
+import assert from 'node:assert'
+import { DatabaseSync } from 'node:sqlite'
+import { ExportService } from '../../../src/server/services/export.service.ts'
+import { ReviewRepository } from '../../../src/server/repositories/review.repo.ts'
+import { CommentRepository } from '../../../src/server/repositories/comment.repo.ts'
+import { migrate, migrations } from '../../../src/server/db/migrations.ts'
 
 describe('ExportService', () => {
-  let db: DatabaseSync;
-  let exportService: ExportService;
-  let reviewRepo: ReviewRepository;
-  let commentRepo: CommentRepository;
-  let testReviewId: string;
+  let db: DatabaseSync
+  let exportService: ExportService
+  let reviewRepo: ReviewRepository
+  let commentRepo: CommentRepository
+  let testReviewId: string
 
   beforeEach(() => {
-    db = new DatabaseSync(':memory:');
-    db.exec('PRAGMA foreign_keys = ON');
-    migrate(db, migrations);
-    exportService = new ExportService(db);
-    reviewRepo = new ReviewRepository(db);
-    commentRepo = new CommentRepository(db);
+    db = new DatabaseSync(':memory:')
+    db.exec('PRAGMA foreign_keys = ON')
+    migrate(db, migrations)
+    exportService = new ExportService(db)
+    reviewRepo = new ReviewRepository(db)
+    commentRepo = new CommentRepository(db)
 
     // Create a test review with diff data
     const snapshotData = JSON.stringify({
@@ -53,7 +53,7 @@ describe('ExportService', () => {
         remote: 'https://github.com/test/repo',
         path: '/path/to/repo',
       },
-    });
+    })
 
     const review = reviewRepo.create({
       id: 'test-review-1',
@@ -63,31 +63,31 @@ describe('ExportService', () => {
       sourceRef: null,
       snapshotData,
       status: 'in_progress',
-    });
-    testReviewId = review.id;
-  });
+    })
+    testReviewId = review.id
+  })
 
   after(() => {
-    db?.close();
-  });
+    db?.close()
+  })
 
   describe('exportToMarkdown', () => {
     it('should return null for non-existent review', () => {
-      const result = exportService.exportToMarkdown('non-existent');
-      assert.strictEqual(result, null);
-    });
+      const result = exportService.exportToMarkdown('non-existent')
+      assert.strictEqual(result, null)
+    })
 
     it('should export a review without comments', () => {
-      const markdown = exportService.exportToMarkdown(testReviewId);
+      const markdown = exportService.exportToMarkdown(testReviewId)
 
-      assert.ok(markdown);
-      assert.ok(markdown.includes('# Code Review: Staged changes'));
-      assert.ok(markdown.includes('test-repo'));
-      assert.ok(markdown.includes('main'));
-      assert.ok(markdown.includes('In Progress'));
-      assert.ok(markdown.includes('**1** files changed'));
-      assert.ok(markdown.includes('`src/index.ts`'));
-    });
+      assert.ok(markdown)
+      assert.ok(markdown.includes('# Code Review: Staged changes'))
+      assert.ok(markdown.includes('test-repo'))
+      assert.ok(markdown.includes('main'))
+      assert.ok(markdown.includes('In Progress'))
+      assert.ok(markdown.includes('**1** files changed'))
+      assert.ok(markdown.includes('`src/index.ts`'))
+    })
 
     it('should export a review with comments', () => {
       commentRepo.create({
@@ -99,16 +99,16 @@ describe('ExportService', () => {
         content: 'Consider using a constant here',
         suggestion: null,
         resolved: false,
-      });
+      })
 
-      const markdown = exportService.exportToMarkdown(testReviewId);
+      const markdown = exportService.exportToMarkdown(testReviewId)
 
-      assert.ok(markdown);
-      assert.ok(markdown.includes('## Review Comments'));
-      assert.ok(markdown.includes('### src/index.ts'));
-      assert.ok(markdown.includes('Consider using a constant here'));
-      assert.ok(markdown.includes('**1** total comments'));
-    });
+      assert.ok(markdown)
+      assert.ok(markdown.includes('## Review Comments'))
+      assert.ok(markdown.includes('### src/index.ts'))
+      assert.ok(markdown.includes('Consider using a constant here'))
+      assert.ok(markdown.includes('**1** total comments'))
+    })
 
     it('should include resolved badge for resolved comments', () => {
       commentRepo.create({
@@ -120,13 +120,13 @@ describe('ExportService', () => {
         content: 'Fixed this',
         suggestion: null,
         resolved: true,
-      });
+      })
 
-      const markdown = exportService.exportToMarkdown(testReviewId);
+      const markdown = exportService.exportToMarkdown(testReviewId)
 
-      assert.ok(markdown);
-      assert.ok(markdown.includes('✅'));
-    });
+      assert.ok(markdown)
+      assert.ok(markdown.includes('✅'))
+    })
 
     it('should include suggestion code blocks', () => {
       commentRepo.create({
@@ -138,14 +138,14 @@ describe('ExportService', () => {
         content: 'Use this instead',
         suggestion: 'const b = 42;',
         resolved: false,
-      });
+      })
 
-      const markdown = exportService.exportToMarkdown(testReviewId);
+      const markdown = exportService.exportToMarkdown(testReviewId)
 
-      assert.ok(markdown);
-      assert.ok(markdown.includes('**Suggested change:**'));
-      assert.ok(markdown.includes('const b = 42;'));
-    });
+      assert.ok(markdown)
+      assert.ok(markdown.includes('**Suggested change:**'))
+      assert.ok(markdown.includes('const b = 42;'))
+    })
 
     it('should exclude resolved comments when includeResolved is false', () => {
       commentRepo.create({
@@ -157,7 +157,7 @@ describe('ExportService', () => {
         content: 'Resolved comment',
         suggestion: null,
         resolved: true,
-      });
+      })
 
       commentRepo.create({
         id: 'comment-2',
@@ -168,17 +168,17 @@ describe('ExportService', () => {
         content: 'Unresolved comment',
         suggestion: null,
         resolved: false,
-      });
+      })
 
       const markdown = exportService.exportToMarkdown(testReviewId, {
         includeResolved: false,
-      });
+      })
 
-      assert.ok(markdown);
-      assert.ok(!markdown.includes('Resolved comment'));
-      assert.ok(markdown.includes('Unresolved comment'));
-      assert.ok(markdown.includes('**1** total comments'));
-    });
+      assert.ok(markdown)
+      assert.ok(!markdown.includes('Resolved comment'))
+      assert.ok(markdown.includes('Unresolved comment'))
+      assert.ok(markdown.includes('**1** total comments'))
+    })
 
     it('should include diff snippets by default', () => {
       commentRepo.create({
@@ -190,14 +190,14 @@ describe('ExportService', () => {
         content: 'Comment on this line',
         suggestion: null,
         resolved: false,
-      });
+      })
 
-      const markdown = exportService.exportToMarkdown(testReviewId);
+      const markdown = exportService.exportToMarkdown(testReviewId)
 
-      assert.ok(markdown);
-      assert.ok(markdown.includes('```diff'));
-      assert.ok(markdown.includes('+const b = 3;'));
-    });
+      assert.ok(markdown)
+      assert.ok(markdown.includes('```diff'))
+      assert.ok(markdown.includes('+const b = 3;'))
+    })
 
     it('should exclude diff snippets when includeDiffSnippets is false', () => {
       commentRepo.create({
@@ -209,36 +209,36 @@ describe('ExportService', () => {
         content: 'Comment on this line',
         suggestion: null,
         resolved: false,
-      });
+      })
 
       const markdown = exportService.exportToMarkdown(testReviewId, {
         includeDiffSnippets: false,
-      });
+      })
 
-      assert.ok(markdown);
-      assert.ok(!markdown.includes('```diff'));
-    });
+      assert.ok(markdown)
+      assert.ok(!markdown.includes('```diff'))
+    })
 
     it('should show correct status badges', () => {
       // Test approved status
-      reviewRepo.update(testReviewId, { status: 'approved' });
-      let markdown = exportService.exportToMarkdown(testReviewId);
-      assert.ok(markdown?.includes('✅ Approved'));
+      reviewRepo.update(testReviewId, { status: 'approved' })
+      let markdown = exportService.exportToMarkdown(testReviewId)
+      assert.ok(markdown?.includes('✅ Approved'))
 
       // Test changes_requested status
-      reviewRepo.update(testReviewId, { status: 'changes_requested' });
-      markdown = exportService.exportToMarkdown(testReviewId);
-      assert.ok(markdown?.includes('⚠️ Changes Requested'));
-    });
+      reviewRepo.update(testReviewId, { status: 'changes_requested' })
+      markdown = exportService.exportToMarkdown(testReviewId)
+      assert.ok(markdown?.includes('⚠️ Changes Requested'))
+    })
 
     it('should include file list with status icons', () => {
-      const markdown = exportService.exportToMarkdown(testReviewId);
+      const markdown = exportService.exportToMarkdown(testReviewId)
 
-      assert.ok(markdown);
-      assert.ok(markdown.includes('## Files Changed'));
-      assert.ok(markdown.includes('📝')); // modified icon
-      assert.ok(markdown.includes('`src/index.ts`'));
-      assert.ok(markdown.includes('+5/-2'));
-    });
-  });
-});
+      assert.ok(markdown)
+      assert.ok(markdown.includes('## Files Changed'))
+      assert.ok(markdown.includes('📝')) // modified icon
+      assert.ok(markdown.includes('`src/index.ts`'))
+      assert.ok(markdown.includes('+5/-2'))
+    })
+  })
+})

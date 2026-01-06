@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { reviewsApi, type ReviewWithDetails, type ReviewListItem } from '../api/reviews';
-import type { PaginatedResponse, CreateReviewRequest, UpdateReviewRequest } from '../../shared/types';
+import { useState, useEffect, useCallback } from 'react'
+import { reviewsApi, type ReviewWithDetails, type ReviewListItem } from '../api/reviews'
+import type { PaginatedResponse, CreateReviewRequest, UpdateReviewRequest } from '../../shared/types'
 
 interface UseReviewsListResult {
   data: PaginatedResponse<ReviewListItem> | null;
@@ -9,33 +9,33 @@ interface UseReviewsListResult {
   refetch: () => void;
 }
 
-export function useReviewsList(params?: {
+export function useReviewsList (params?: {
   page?: number;
   pageSize?: number;
   status?: string;
 }): UseReviewsListResult {
-  const [data, setData] = useState<PaginatedResponse<ReviewListItem> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [data, setData] = useState<PaginatedResponse<ReviewListItem> | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true)
+    setError(null)
     try {
-      const result = await reviewsApi.list(params);
-      setData(result);
+      const result = await reviewsApi.list(params)
+      setData(result)
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
+      setError(err instanceof Error ? err : new Error('Unknown error'))
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [params?.page, params?.pageSize, params?.status]);
+  }, [params?.page, params?.pageSize, params?.status])
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchData()
+  }, [fetchData])
 
-  return { data, loading, error, refetch: fetchData };
+  return { data, loading, error, refetch: fetchData }
 }
 
 interface UseReviewResult {
@@ -45,29 +45,29 @@ interface UseReviewResult {
   refetch: () => void;
 }
 
-export function useReview(id: string): UseReviewResult {
-  const [data, setData] = useState<ReviewWithDetails | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+export function useReview (id: string): UseReviewResult {
+  const [data, setData] = useState<ReviewWithDetails | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true)
+    setError(null)
     try {
-      const result = await reviewsApi.get(id);
-      setData(result);
+      const result = await reviewsApi.get(id)
+      setData(result)
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Unknown error'));
+      setError(err instanceof Error ? err : new Error('Unknown error'))
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [id]);
+  }, [id])
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchData()
+  }, [fetchData])
 
-  return { data, loading, error, refetch: fetchData };
+  return { data, loading, error, refetch: fetchData }
 }
 
 interface UseCreateReviewResult {
@@ -76,26 +76,26 @@ interface UseCreateReviewResult {
   error: Error | null;
 }
 
-export function useCreateReview(): UseCreateReviewResult {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+export function useCreateReview (): UseCreateReviewResult {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
 
   const create = async (data: CreateReviewRequest): Promise<ReviewWithDetails> => {
-    setLoading(true);
-    setError(null);
+    setLoading(true)
+    setError(null)
     try {
-      const result = await reviewsApi.create(data);
-      return result;
+      const result = await reviewsApi.create(data)
+      return result
     } catch (err) {
-      const e = err instanceof Error ? err : new Error('Unknown error');
-      setError(e);
-      throw e;
+      const e = err instanceof Error ? err : new Error('Unknown error')
+      setError(e)
+      throw e
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  return { create, loading, error };
+  return { create, loading, error }
 }
 
 interface UseUpdateReviewResult {
@@ -104,24 +104,24 @@ interface UseUpdateReviewResult {
   error: Error | null;
 }
 
-export function useUpdateReview(): UseUpdateReviewResult {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
+export function useUpdateReview (): UseUpdateReviewResult {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
 
   const update = async (id: string, data: UpdateReviewRequest): Promise<ReviewWithDetails> => {
-    setLoading(true);
-    setError(null);
+    setLoading(true)
+    setError(null)
     try {
-      const result = await reviewsApi.update(id, data);
-      return result;
+      const result = await reviewsApi.update(id, data)
+      return result
     } catch (err) {
-      const e = err instanceof Error ? err : new Error('Unknown error');
-      setError(e);
-      throw e;
+      const e = err instanceof Error ? err : new Error('Unknown error')
+      setError(e)
+      throw e
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  return { update, loading, error };
+  return { update, loading, error }
 }

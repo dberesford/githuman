@@ -1,96 +1,96 @@
 /**
  * Git service - handles all git operations
  */
-import { simpleGit, type SimpleGit } from 'simple-git';
-import { requestContext } from '../app.ts';
-import type { RepositoryInfo } from '../../shared/types.ts';
+import { simpleGit, type SimpleGit } from 'simple-git'
+import { requestContext } from '../app.ts'
+import type { RepositoryInfo } from '../../shared/types.ts'
 
 export class GitService {
-  private git: SimpleGit;
-  private repoPath: string;
+  private git: SimpleGit
+  private repoPath: string
 
-  constructor(repoPath: string) {
-    this.repoPath = repoPath;
-    this.git = simpleGit(repoPath);
+  constructor (repoPath: string) {
+    this.repoPath = repoPath
+    this.git = simpleGit(repoPath)
   }
 
   /** Get the logger from request context */
-  private get log() {
-    return requestContext.get('log');
+  private get log () {
+    return requestContext.get('log')
   }
 
   /**
    * Check if the path is a valid git repository
    */
-  async isRepo(): Promise<boolean> {
+  async isRepo (): Promise<boolean> {
     try {
-      await this.git.revparse(['--git-dir']);
-      return true;
+      await this.git.revparse(['--git-dir'])
+      return true
     } catch (err) {
-      this.log?.debug({ err, repoPath: this.repoPath }, 'isRepo check failed');
-      return false;
+      this.log?.debug({ err, repoPath: this.repoPath }, 'isRepo check failed')
+      return false
     }
   }
 
   /**
    * Check if the repository has any commits
    */
-  async hasCommits(): Promise<boolean> {
+  async hasCommits (): Promise<boolean> {
     try {
-      await this.git.revparse(['HEAD']);
-      return true;
+      await this.git.revparse(['HEAD'])
+      return true
     } catch (err) {
-      this.log?.debug({ err, repoPath: this.repoPath }, 'hasCommits check failed');
-      return false;
+      this.log?.debug({ err, repoPath: this.repoPath }, 'hasCommits check failed')
+      return false
     }
   }
 
   /**
    * Get the repository root directory
    */
-  async getRepoRoot(): Promise<string> {
-    const root = await this.git.revparse(['--show-toplevel']);
-    return root.trim();
+  async getRepoRoot (): Promise<string> {
+    const root = await this.git.revparse(['--show-toplevel'])
+    return root.trim()
   }
 
   /**
    * Get repository metadata
    */
-  async getRepositoryInfo(): Promise<RepositoryInfo> {
+  async getRepositoryInfo (): Promise<RepositoryInfo> {
     const [root, branch, remotes] = await Promise.all([
       this.getRepoRoot(),
       this.getCurrentBranch(),
       this.git.getRemotes(true),
-    ]);
+    ])
 
-    const name = root.split('/').pop() ?? 'unknown';
-    const originRemote = remotes.find((r) => r.name === 'origin');
-    const remote = originRemote?.refs?.fetch ?? null;
+    const name = root.split('/').pop() ?? 'unknown'
+    const originRemote = remotes.find((r) => r.name === 'origin')
+    const remote = originRemote?.refs?.fetch ?? null
 
     return {
       name,
       branch: branch ?? 'main',
       remote,
       path: root,
-    };
+    }
   }
 
   /**
    * Get current branch name (returns null for repos without commits)
    */
-  async getCurrentBranch(): Promise<string | null> {
+  async getCurrentBranch (): Promise<string | null> {
     try {
-      const branch = await this.git.revparse(['--abbrev-ref', 'HEAD']);
-      return branch.trim();
+      const branch = await this.git.revparse(['--abbrev-ref', 'HEAD'])
+      return branch.trim()
     } catch (err) {
-      this.log?.debug({ err, repoPath: this.repoPath }, 'getCurrentBranch revparse failed, trying config');
+      this.log?.debug({ err, repoPath: this.repoPath }, 'getCurrentBranch revparse failed, trying config')
       // No commits yet - try to get the default branch from config
       try {
-        const defaultBranch = await this.git.raw(['config', '--get', 'init.defaultBranch']);
-        return defaultBranch.trim() || null;
+        const defaultBranch = await this.git.raw(['config', '--get', 'init.defaultBranch'])
+        return defaultBranch.trim() || null
       } catch (configErr) {
-        this.log?.debug({ err: configErr, repoPath: this.repoPath }, 'getCurrentBranch config fallback failed');
-        return null;
+        this.log?.debug({ err: configErr, repoPath: this.repoPath }, 'getCurrentBranch config fallback failed')
+        return null
       }
     }
   }
@@ -98,15 +98,15 @@ export class GitService {
   /**
    * Get list of staged files with their status
    */
-  async getStagedFiles(): Promise<StagedFile[]> {
-    const status = await this.git.status();
-    const staged: StagedFile[] = [];
+  async getStagedFiles (): Promise<StagedFile[]> {
+    const status = await this.git.status()
+    const staged: StagedFile[] = []
 
     for (const file of status.staged) {
       staged.push({
         path: file,
         status: 'modified',
-      });
+      })
     }
 
     for (const file of status.created) {
@@ -114,7 +114,7 @@ export class GitService {
         staged.push({
           path: file,
           status: 'added',
-        });
+        })
       }
     }
 
@@ -123,7 +123,7 @@ export class GitService {
         staged.push({
           path: file,
           status: 'deleted',
-        });
+        })
       }
     }
 
@@ -132,85 +132,84 @@ export class GitService {
         path: file.to,
         oldPath: file.from,
         status: 'renamed',
-      });
+      })
     }
 
-    return staged;
+    return staged
   }
 
   /**
    * Check if a specific file is staged
    */
-  private async isFileStaged(filePath: string): Promise<boolean> {
+  private async isFileStaged (filePath: string): Promise<boolean> {
     try {
-      const result = await this.git.diff(['--cached', '--name-only', '--', filePath]);
-      return result.trim().length > 0;
+      const result = await this.git.diff(['--cached', '--name-only', '--', filePath])
+      return result.trim().length > 0
     } catch (err) {
-      this.log?.debug({ err, filePath }, 'isFileStaged check failed');
-      return false;
+      this.log?.debug({ err, filePath }, 'isFileStaged check failed')
+      return false
     }
   }
 
   /**
    * Get unified diff for all staged changes
    */
-  async getStagedDiff(): Promise<string> {
-    const diff = await this.git.diff(['--cached']);
-    return diff;
+  async getStagedDiff (): Promise<string> {
+    const diff = await this.git.diff(['--cached'])
+    return diff
   }
 
   /**
    * Get unified diff for a specific staged file
    */
-  async getStagedFileDiff(filePath: string): Promise<string> {
-    const diff = await this.git.diff(['--cached', '--', filePath]);
-    return diff;
+  async getStagedFileDiff (filePath: string): Promise<string> {
+    const diff = await this.git.diff(['--cached', '--', filePath])
+    return diff
   }
 
   /**
    * Get diff statistics for staged changes
    */
-  async getStagedDiffStats(): Promise<DiffStats> {
-    const diffStat = await this.git.diff(['--cached', '--stat']);
-    const numstat = await this.git.diff(['--cached', '--numstat']);
+  async getStagedDiffStats (): Promise<DiffStats> {
+    const numstat = await this.git.diff(['--cached', '--numstat'])
 
-    const files: FileDiffStats[] = [];
-    const lines = numstat.trim().split('\n').filter(Boolean);
+    const files: FileDiffStats[] = []
+    const lines = numstat.trim().split('\n').filter(Boolean)
 
     for (const line of lines) {
-      const [additions, deletions, path] = line.split('\t');
+      const [additions, deletions, path] = line.split('\t')
       files.push({
         path,
         additions: additions === '-' ? 0 : parseInt(additions, 10),
         deletions: deletions === '-' ? 0 : parseInt(deletions, 10),
-      });
+      })
     }
 
-    const totalAdditions = files.reduce((sum, f) => sum + f.additions, 0);
-    const totalDeletions = files.reduce((sum, f) => sum + f.deletions, 0);
+    const totalAdditions = files.reduce((sum, f) => sum + f.additions, 0)
+    const totalDeletions = files.reduce((sum, f) => sum + f.deletions, 0)
 
     return {
       files,
       totalFiles: files.length,
       totalAdditions,
       totalDeletions,
-    };
+    }
   }
 
   /**
    * Check if there are any staged changes
    */
-  async hasStagedChanges(): Promise<boolean> {
-    const diff = await this.git.diff(['--cached', '--name-only']);
-    return diff.trim().length > 0;
+  async hasStagedChanges (): Promise<boolean> {
+    const diff = await this.git.diff(['--cached', '--name-only'])
+    return diff.trim().length > 0
   }
 
   /**
    * Get list of unstaged (working tree) files with their status
    */
-  async getUnstagedFiles(): Promise<UnstagedFile[]> {
-    const status = await this.git.status();
-    const unstaged: UnstagedFile[] = [];
+  async getUnstagedFiles (): Promise<UnstagedFile[]> {
+    const status = await this.git.status()
+    const unstaged: UnstagedFile[] = []
 
     // Modified files that are not staged
     for (const file of status.modified) {
@@ -218,7 +217,7 @@ export class GitService {
         unstaged.push({
           path: file,
           status: 'modified',
-        });
+        })
       }
     }
 
@@ -227,239 +226,239 @@ export class GitService {
       unstaged.push({
         path: file,
         status: 'untracked',
-      });
+      })
     }
 
     // Deleted files that are not staged
     for (const file of status.deleted) {
-      const isStaged = await this.isFileStaged(file);
+      const isStaged = await this.isFileStaged(file)
       if (!isStaged) {
         unstaged.push({
           path: file,
           status: 'deleted',
-        });
+        })
       }
     }
 
-    return unstaged;
+    return unstaged
   }
 
   /**
    * Check if there are any unstaged changes
    */
-  async hasUnstagedChanges(): Promise<boolean> {
-    const status = await this.git.status();
+  async hasUnstagedChanges (): Promise<boolean> {
+    const status = await this.git.status()
     return (
       status.modified.length > 0 ||
       status.not_added.length > 0 ||
       status.deleted.some(f => !status.staged.includes(f))
-    );
+    )
   }
 
   /**
    * Get unified diff for all unstaged (working tree) changes
    */
-  async getUnstagedDiff(): Promise<string> {
-    const diff = await this.git.diff();
-    return diff;
+  async getUnstagedDiff (): Promise<string> {
+    const diff = await this.git.diff()
+    return diff
   }
 
   /**
    * Stage a specific file
    */
-  async stageFile(filePath: string): Promise<void> {
-    await this.git.add(filePath);
+  async stageFile (filePath: string): Promise<void> {
+    await this.git.add(filePath)
   }
 
   /**
    * Stage multiple files
    */
-  async stageFiles(filePaths: string[]): Promise<void> {
+  async stageFiles (filePaths: string[]): Promise<void> {
     if (filePaths.length > 0) {
-      await this.git.add(filePaths);
+      await this.git.add(filePaths)
     }
   }
 
   /**
    * Stage all changes (including untracked files)
    */
-  async stageAll(): Promise<void> {
-    await this.git.add('-A');
+  async stageAll (): Promise<void> {
+    await this.git.add('-A')
   }
 
   /**
    * Unstage a specific file
    */
-  async unstageFile(filePath: string): Promise<void> {
-    await this.git.reset(['HEAD', '--', filePath]);
+  async unstageFile (filePath: string): Promise<void> {
+    await this.git.reset(['HEAD', '--', filePath])
   }
 
   /**
    * Get the current HEAD commit SHA (returns null for repos without commits)
    */
-  async getHeadSha(): Promise<string | null> {
+  async getHeadSha (): Promise<string | null> {
     try {
-      const sha = await this.git.revparse(['HEAD']);
-      return sha.trim();
+      const sha = await this.git.revparse(['HEAD'])
+      return sha.trim()
     } catch (err) {
-      this.log?.debug({ err, repoPath: this.repoPath }, 'getHeadSha failed');
-      return null;
+      this.log?.debug({ err, repoPath: this.repoPath }, 'getHeadSha failed')
+      return null
     }
   }
 
   /**
    * Get file content from the staged version (index)
    */
-  async getStagedFileContent(filePath: string): Promise<string | null> {
+  async getStagedFileContent (filePath: string): Promise<string | null> {
     try {
-      const content = await this.git.show([`:${filePath}`]);
-      return content;
+      const content = await this.git.show([`:${filePath}`])
+      return content
     } catch (err) {
-      this.log?.debug({ err, filePath }, 'getStagedFileContent failed');
-      return null;
+      this.log?.debug({ err, filePath }, 'getStagedFileContent failed')
+      return null
     }
   }
 
   /**
    * Get file content from HEAD
    */
-  async getHeadFileContent(filePath: string): Promise<string | null> {
+  async getHeadFileContent (filePath: string): Promise<string | null> {
     try {
-      const content = await this.git.show([`HEAD:${filePath}`]);
-      return content;
+      const content = await this.git.show([`HEAD:${filePath}`])
+      return content
     } catch (err) {
-      this.log?.debug({ err, filePath }, 'getHeadFileContent failed');
-      return null;
+      this.log?.debug({ err, filePath }, 'getHeadFileContent failed')
+      return null
     }
   }
 
   /**
    * Get file content from a specific commit/ref
    */
-  async getFileContentAtRef(filePath: string, ref: string): Promise<string | null> {
+  async getFileContentAtRef (filePath: string, ref: string): Promise<string | null> {
     try {
-      const content = await this.git.show([`${ref}:${filePath}`]);
-      return content;
+      const content = await this.git.show([`${ref}:${filePath}`])
+      return content
     } catch (err) {
-      this.log?.debug({ err, filePath, ref }, 'getFileContentAtRef failed');
-      return null;
+      this.log?.debug({ err, filePath, ref }, 'getFileContentAtRef failed')
+      return null
     }
   }
 
   /**
    * Get binary file content from the staged version (index) as base64
    */
-  async getStagedBinaryContent(filePath: string): Promise<Buffer | null> {
+  async getStagedBinaryContent (filePath: string): Promise<Buffer | null> {
     try {
-      const result = await this.git.raw(['show', `:${filePath}`]);
-      return Buffer.from(result, 'binary');
+      const result = await this.git.raw(['show', `:${filePath}`])
+      return Buffer.from(result, 'binary')
     } catch (err) {
-      this.log?.debug({ err, filePath }, 'getStagedBinaryContent failed');
-      return null;
+      this.log?.debug({ err, filePath }, 'getStagedBinaryContent failed')
+      return null
     }
   }
 
   /**
    * Get binary file content from HEAD as base64
    */
-  async getHeadBinaryContent(filePath: string): Promise<Buffer | null> {
+  async getHeadBinaryContent (filePath: string): Promise<Buffer | null> {
     try {
-      const result = await this.git.raw(['show', `HEAD:${filePath}`]);
-      return Buffer.from(result, 'binary');
+      const result = await this.git.raw(['show', `HEAD:${filePath}`])
+      return Buffer.from(result, 'binary')
     } catch (err) {
-      this.log?.debug({ err, filePath }, 'getHeadBinaryContent failed');
-      return null;
+      this.log?.debug({ err, filePath }, 'getHeadBinaryContent failed')
+      return null
     }
   }
 
   /**
    * Get diff between current branch and another branch
    */
-  async getBranchDiff(targetBranch: string): Promise<string> {
+  async getBranchDiff (targetBranch: string): Promise<string> {
     // Get diff from target branch to HEAD (shows what would be merged)
-    const diff = await this.git.diff([`${targetBranch}...HEAD`]);
-    return diff;
+    const diff = await this.git.diff([`${targetBranch}...HEAD`])
+    return diff
   }
 
   /**
    * Get diff for specific commits
    */
-  async getCommitsDiff(commits: string[]): Promise<string> {
+  async getCommitsDiff (commits: string[]): Promise<string> {
     if (commits.length === 0) {
-      return '';
+      return ''
     }
 
     if (commits.length === 1) {
       // Single commit - show that commit's diff
-      const diff = await this.git.show([commits[0], '--format=']);
-      return diff;
+      const diff = await this.git.show([commits[0], '--format='])
+      return diff
     }
 
     // Multiple commits - combine individual diffs
     // This works regardless of commit order or whether they're contiguous
-    const diffs: string[] = [];
+    const diffs: string[] = []
     for (const commit of commits) {
-      const diff = await this.git.show([commit, '--format=']);
+      const diff = await this.git.show([commit, '--format='])
       if (diff.trim()) {
-        diffs.push(diff);
+        diffs.push(diff)
       }
     }
-    return diffs.join('\n');
+    return diffs.join('\n')
   }
 
   /**
    * List all branches (local and remote)
    */
-  async getBranches(): Promise<BranchInfo[]> {
-    const result = await this.git.branch(['-a', '-v']);
-    const branches: BranchInfo[] = [];
+  async getBranches (): Promise<BranchInfo[]> {
+    const result = await this.git.branch(['-a', '-v'])
+    const branches: BranchInfo[] = []
 
     for (const branch of result.all) {
-      const isRemote = branch.startsWith('remotes/');
-      const isCurrent = branch === result.current;
-      const name = isRemote ? branch.replace(/^remotes\/origin\//, '') : branch;
+      const isRemote = branch.startsWith('remotes/')
+      const isCurrent = branch === result.current
+      const name = isRemote ? branch.replace(/^remotes\/origin\//, '') : branch
 
       // Skip HEAD pointer
-      if (name === 'HEAD') continue;
+      if (name === 'HEAD') continue
 
       branches.push({
         name,
         isRemote,
         isCurrent,
-      });
+      })
     }
 
     // Deduplicate (local and remote with same name)
-    const seen = new Set<string>();
+    const seen = new Set<string>()
     return branches.filter(b => {
-      if (seen.has(b.name)) return false;
-      seen.add(b.name);
-      return true;
-    });
+      if (seen.has(b.name)) return false
+      seen.add(b.name)
+      return true
+    })
   }
 
   /**
    * Get recent commits
    */
-  async getCommits(limit: number = 20): Promise<CommitInfo[]> {
+  async getCommits (limit: number = 20): Promise<CommitInfo[]> {
     // Use raw() to get properly formatted output since log() doesn't parse custom formats well
-    const rawLog = await this.git.raw(['log', `-${limit}`, '--format=%H|%s|%an|%ai']);
-    const commits: CommitInfo[] = [];
+    const rawLog = await this.git.raw(['log', `-${limit}`, '--format=%H|%s|%an|%ai'])
+    const commits: CommitInfo[] = []
 
-    const lines = rawLog.trim().split('\n').filter(line => line.length > 0);
+    const lines = rawLog.trim().split('\n').filter(line => line.length > 0)
     for (const line of lines) {
-      const [sha, message, author, date] = line.split('|');
+      const [sha, message, author, date] = line.split('|')
       if (sha) {
         commits.push({
           sha,
           message: message || '',
           author: author || '',
           date: date || '',
-        });
+        })
       }
     }
 
-    return commits;
+    return commits
   }
 }
 

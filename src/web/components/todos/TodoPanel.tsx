@@ -15,6 +15,7 @@ import {
   useClearCompleted,
   useReorderTodos,
 } from '../../hooks/useTodos';
+import { useServerEvents } from '../../hooks/useServerEvents';
 
 type FilterState = 'all' | 'pending' | 'completed';
 
@@ -44,6 +45,16 @@ export function TodoPanel({ reviewId, className }: TodoPanelProps) {
   const { reorder, loading: reordering } = useReorderTodos();
 
   const isDisabled = creating || updating || toggling || deleting || clearing || reordering;
+
+  // Subscribe to SSE for real-time updates (e.g., from CLI)
+  // Also listen for 'connected' to refetch on reconnect (catches missed events on mobile)
+  useServerEvents({
+    eventTypes: ['todos', 'connected'],
+    onEvent: useCallback(() => {
+      refetch();
+      refetchStats();
+    }, [refetch, refetchStats]),
+  });
 
   const handleAdd = useCallback(async (content: string) => {
     await create({ content, reviewId });

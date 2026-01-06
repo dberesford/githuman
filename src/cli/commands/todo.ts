@@ -7,6 +7,30 @@ import { initDatabase, closeDatabase, getDatabase } from '../../server/db/index.
 import { createConfig } from '../../server/config.ts';
 import { TodoRepository } from '../../server/repositories/todo.repo.ts';
 
+/**
+ * Notify the running server that todos have changed.
+ * This is fire-and-forget - if the server isn't running, we silently continue.
+ */
+async function notifyServer(config: { port: number; host: string; authToken: string | null }) {
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (config.authToken) {
+      headers['Authorization'] = `Bearer ${config.authToken}`;
+    }
+
+    const res = await fetch(`http://${config.host}:${config.port}/api/events/notify`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ type: 'todos', action: 'updated' }),
+      signal: AbortSignal.timeout(1000), // 1 second timeout
+    });
+    // Consume the response body to avoid resource leaks
+    await res.text();
+  } catch {
+    // Server not running or unreachable - silently continue
+  }
+}
+
 function printHelp() {
   console.log(`
 Usage: githuman todo <subcommand> [options]
@@ -60,6 +84,7 @@ export async function todoCommand(args: string[]) {
 
   const subcommand = positionals[0];
   const config = createConfig();
+  let didMutate = false;
 
   try {
     initDatabase(config.dbPath);
@@ -88,6 +113,7 @@ export async function todoCommand(args: string[]) {
           console.log(`Created todo: ${todo.id.slice(0, 8)}`);
           console.log(`  ${todo.content}`);
         }
+        didMutate = true;
         break;
       }
 
@@ -153,6 +179,7 @@ export async function todoCommand(args: string[]) {
         } else {
           console.log(`Marked as done: ${todo.content}`);
         }
+        didMutate = true;
         break;
       }
 
@@ -176,6 +203,7 @@ export async function todoCommand(args: string[]) {
         } else {
           console.log(`Marked as pending: ${todo.content}`);
         }
+        didMutate = true;
         break;
       }
 
@@ -206,6 +234,7 @@ export async function todoCommand(args: string[]) {
         } else {
           console.log(`Moved "${todo.content}" to position ${position}`);
         }
+        didMutate = true;
         break;
       }
 
@@ -229,6 +258,7 @@ export async function todoCommand(args: string[]) {
         } else {
           console.log(`Removed: ${todo.content}`);
         }
+        didMutate = true;
         break;
       }
 
@@ -239,6 +269,9 @@ export async function todoCommand(args: string[]) {
             console.log(JSON.stringify({ deleted: count }, null, 2));
           } else {
             console.log(`Cleared ${count} completed todo${count === 1 ? '' : 's'}`);
+          }
+          if (count > 0) {
+            didMutate = true;
           }
         } else {
           console.error('Error: --done flag is required to clear todos');
@@ -252,6 +285,11 @@ export async function todoCommand(args: string[]) {
         console.error(`Unknown subcommand: ${subcommand}`);
         printHelp();
         process.exit(1);
+    }
+
+    // Notify server of changes if mutation occurred
+    if (didMutate) {
+      await notifyServer(config);
     }
 
     closeDatabase();

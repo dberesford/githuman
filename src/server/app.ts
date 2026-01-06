@@ -8,6 +8,8 @@ import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
+import fastifySSE from '@fastify/sse';
+import type { FastifyPluginAsync } from 'fastify';
 import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,6 +19,7 @@ import reviewRoutes from './routes/reviews.ts';
 import commentRoutes from './routes/comments.ts';
 import todoRoutes from './routes/todos.ts';
 import gitRoutes from './routes/git.ts';
+import eventsRoutes from './routes/events.ts';
 import type { ServerConfig } from './config.ts';
 import type { HealthResponse } from '../shared/types.ts';
 import { HealthResponseSchema } from './schemas/common.ts';
@@ -77,6 +80,7 @@ export async function buildApp(
         { name: 'comments', description: 'Review comments' },
         { name: 'diff', description: 'Git diff operations' },
         { name: 'git', description: 'Git repository information' },
+        { name: 'events', description: 'Server-sent events for real-time updates' },
       ],
       servers: [
         {
@@ -111,6 +115,10 @@ export async function buildApp(
     origin: true,
   });
 
+  // Register SSE plugin for server-sent events
+  // Cast needed because TypeBox type provider changes instance signature
+  await app.register(fastifySSE as unknown as FastifyPluginAsync);
+
   // Register auth plugin
   await app.register(authPlugin, {
     token: config.authToken,
@@ -143,6 +151,7 @@ export async function buildApp(
   await app.register(commentRoutes);
   await app.register(todoRoutes);
   await app.register(gitRoutes);
+  await app.register(eventsRoutes);
 
   // Serve static files if enabled and dist/web exists
   if (options.serveStatic !== false) {

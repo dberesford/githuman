@@ -1,6 +1,7 @@
 /**
  * Server entry point
  */
+import closeWithGrace from 'close-with-grace'
 import { buildApp } from './app.ts'
 import { initDatabase, closeDatabase } from './db/index.ts'
 import type { ServerConfig } from './config.ts'
@@ -12,15 +13,16 @@ export async function startServer (config: ServerConfig): Promise<void> {
   // Build and start the app
   const app = await buildApp(config)
 
-  // Graceful shutdown
-  const shutdown = async () => {
+  // Graceful shutdown with timeout
+  closeWithGrace({ delay: 5000 }, async ({ signal, err }) => {
+    if (err) {
+      app.log.error({ err }, 'Server closing due to error')
+    } else {
+      app.log.info({ signal }, 'Server shutting down')
+    }
     await app.close()
     closeDatabase()
-    process.exit(0)
-  }
-
-  process.on('SIGINT', shutdown)
-  process.on('SIGTERM', shutdown)
+  })
 
   try {
     await app.listen({ port: config.port, host: config.host })

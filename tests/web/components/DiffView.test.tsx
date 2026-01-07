@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { DiffView } from '../../../src/web/components/diff/DiffView'
+import { CommentProvider } from '../../../src/web/contexts/CommentContext'
 import type { DiffFile, DiffSummary } from '../../../src/shared/types'
+
+function renderWithProvider (ui: React.ReactElement) {
+  return render(
+    <CommentProvider reviewId={null}>
+      {ui}
+    </CommentProvider>
+  )
+}
 
 describe('DiffView', () => {
   const mockFiles: DiffFile[] = [
@@ -34,21 +43,21 @@ describe('DiffView', () => {
   }
 
   it('renders empty state when no files', () => {
-    render(<DiffView files={[]} />)
+    renderWithProvider(<DiffView files={[]} />)
 
     expect(screen.getByText('No changes to display')).toBeDefined()
     expect(screen.getByText('Stage some changes to see them here')).toBeDefined()
   })
 
   it('renders files list', () => {
-    render(<DiffView files={mockFiles} />)
+    renderWithProvider(<DiffView files={mockFiles} />)
 
     expect(screen.getByText('file1.ts')).toBeDefined()
     expect(screen.getByText('file2.ts')).toBeDefined()
   })
 
   it('renders summary when provided', () => {
-    render(<DiffView files={mockFiles} summary={mockSummary} />)
+    renderWithProvider(<DiffView files={mockFiles} summary={mockSummary} />)
 
     expect(screen.getByText('2')).toBeDefined() // totalFiles
     expect(screen.getByText('+13')).toBeDefined() // additions
@@ -58,21 +67,21 @@ describe('DiffView', () => {
   })
 
   it('shows file counts by status in summary', () => {
-    render(<DiffView files={mockFiles} summary={mockSummary} />)
+    renderWithProvider(<DiffView files={mockFiles} summary={mockSummary} />)
 
     expect(screen.getByText('1 added')).toBeDefined()
     expect(screen.getByText('1 modified')).toBeDefined()
   })
 
   it('filters to selected file when provided', () => {
-    render(<DiffView files={mockFiles} selectedFile='file1.ts' />)
+    renderWithProvider(<DiffView files={mockFiles} selectedFile='file1.ts' />)
 
     expect(screen.getByText('file1.ts')).toBeDefined()
     expect(screen.queryByText('file2.ts')).toBeNull()
   })
 
   it('shows all files when no selection', () => {
-    render(<DiffView files={mockFiles} />)
+    renderWithProvider(<DiffView files={mockFiles} />)
 
     expect(screen.getByText('file1.ts')).toBeDefined()
     expect(screen.getByText('file2.ts')).toBeDefined()

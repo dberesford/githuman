@@ -1,9 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MarkdownDiff, isMarkdownFile } from '../../../src/web/components/diff/MarkdownDiff'
+import { CommentProvider } from '../../../src/web/contexts/CommentContext'
 import type { DiffFile } from '../../../src/shared/types'
 
 import { diffApi } from '../../../src/web/api/diff'
+
+function renderWithProvider (ui: React.ReactElement) {
+  return render(
+    <CommentProvider reviewId={null}>
+      {ui}
+    </CommentProvider>
+  )
+}
 
 // Mock the diff API
 vi.mock('../../../src/web/api/diff', () => ({
@@ -80,7 +89,7 @@ describe('MarkdownDiff', () => {
   })
 
   it('should render with diff view by default', () => {
-    render(<MarkdownDiff file={mockFile} />)
+    renderWithProvider(<MarkdownDiff file={mockFile} />)
 
     // Should show diff button as active (has accent color)
     const diffButton = screen.getByRole('button', { name: 'Diff' })
@@ -91,7 +100,7 @@ describe('MarkdownDiff', () => {
   })
 
   it('should show view mode toggle buttons', () => {
-    render(<MarkdownDiff file={mockFile} />)
+    renderWithProvider(<MarkdownDiff file={mockFile} />)
 
     expect(screen.getByRole('button', { name: 'Diff' })).toBeDefined()
     expect(screen.getByRole('button', { name: 'Preview' })).toBeDefined()
@@ -104,7 +113,7 @@ describe('MarkdownDiff', () => {
       lines: ['# Hello World', '', 'This is a test.'],
     })
 
-    render(<MarkdownDiff file={mockFile} />)
+    renderWithProvider(<MarkdownDiff file={mockFile} />)
 
     // Click preview button
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
@@ -124,7 +133,7 @@ describe('MarkdownDiff', () => {
       lines: ['# Test'],
     })
 
-    render(<MarkdownDiff file={mockFile} />)
+    renderWithProvider(<MarkdownDiff file={mockFile} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Split' }))
 
@@ -138,7 +147,7 @@ describe('MarkdownDiff', () => {
   it('should handle API errors gracefully', async () => {
     mockDiffApi.getFileContent.mockRejectedValue(new Error('Failed to load'))
 
-    render(<MarkdownDiff file={mockFile} />)
+    renderWithProvider(<MarkdownDiff file={mockFile} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
 
@@ -153,7 +162,7 @@ describe('MarkdownDiff', () => {
       status: 'deleted',
     }
 
-    render(<MarkdownDiff file={deletedFile} />)
+    renderWithProvider(<MarkdownDiff file={deletedFile} />)
 
     expect(screen.getByRole('button', { name: 'Diff' })).toBeDefined()
     expect(screen.queryByRole('button', { name: 'Preview' })).toBeNull()
@@ -166,7 +175,7 @@ describe('MarkdownDiff', () => {
       lines: ['# Test'],
     })
 
-    render(<MarkdownDiff file={mockFile} />)
+    renderWithProvider(<MarkdownDiff file={mockFile} />)
 
     // Switch to preview
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
@@ -199,7 +208,7 @@ describe('MarkdownDiff', () => {
         ],
       })
 
-      render(<MarkdownDiff file={mockFile} />)
+      renderWithProvider(<MarkdownDiff file={mockFile} />)
       fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
 
       await waitFor(() => {
@@ -215,7 +224,7 @@ describe('MarkdownDiff', () => {
         lines: ['Press <kbd>Ctrl</kbd> + <kbd>C</kbd>'],
       })
 
-      render(<MarkdownDiff file={mockFile} />)
+      renderWithProvider(<MarkdownDiff file={mockFile} />)
       fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
 
       await waitFor(() => {
@@ -230,7 +239,7 @@ describe('MarkdownDiff', () => {
         lines: ['# Test', "<script>alert('XSS')</script>", 'Safe text'],
       })
 
-      render(<MarkdownDiff file={mockFile} />)
+      renderWithProvider(<MarkdownDiff file={mockFile} />)
       fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
 
       await waitFor(() => {
@@ -247,7 +256,7 @@ describe('MarkdownDiff', () => {
         lines: ["<a href=\"javascript:alert('XSS')\">Click me</a>"],
       })
 
-      render(<MarkdownDiff file={mockFile} />)
+      renderWithProvider(<MarkdownDiff file={mockFile} />)
       fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
 
       await waitFor(() => {
@@ -265,7 +274,7 @@ describe('MarkdownDiff', () => {
         lines: ["<img src=\"x\" onerror=\"alert('XSS')\">"],
       })
 
-      render(<MarkdownDiff file={mockFile} />)
+      renderWithProvider(<MarkdownDiff file={mockFile} />)
       fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
 
       await waitFor(() => {

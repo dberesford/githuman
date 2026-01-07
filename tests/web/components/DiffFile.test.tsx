@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { DiffFile } from '../../../src/web/components/diff/DiffFile'
+import { CommentProvider } from '../../../src/web/contexts/CommentContext'
 import type { DiffFile as DiffFileType } from '../../../src/shared/types'
+
+function renderWithProvider (ui: React.ReactElement) {
+  return render(
+    <CommentProvider reviewId={null}>
+      {ui}
+    </CommentProvider>
+  )
+}
 
 describe('DiffFile', () => {
   const mockFile: DiffFileType = {
@@ -27,26 +36,26 @@ describe('DiffFile', () => {
   }
 
   it('renders file path', () => {
-    render(<DiffFile file={mockFile} />)
+    renderWithProvider(<DiffFile file={mockFile} />)
 
     expect(screen.getByText('src/app.ts')).toBeDefined()
   })
 
   it('renders status badge', () => {
-    render(<DiffFile file={mockFile} />)
+    renderWithProvider(<DiffFile file={mockFile} />)
 
     expect(screen.getByText('Modified')).toBeDefined()
   })
 
   it('renders addition and deletion counts', () => {
-    render(<DiffFile file={mockFile} />)
+    renderWithProvider(<DiffFile file={mockFile} />)
 
     expect(screen.getByText('+5')).toBeDefined()
     expect(screen.getByText('-2')).toBeDefined()
   })
 
   it('shows diff content when expanded', () => {
-    render(<DiffFile file={mockFile} defaultExpanded />)
+    renderWithProvider(<DiffFile file={mockFile} defaultExpanded />)
 
     expect(screen.getByText('line 1')).toBeDefined()
     expect(screen.getByText('old line')).toBeDefined()
@@ -54,14 +63,14 @@ describe('DiffFile', () => {
   })
 
   it('hides diff content when collapsed', () => {
-    render(<DiffFile file={mockFile} defaultExpanded={false} />)
+    renderWithProvider(<DiffFile file={mockFile} defaultExpanded={false} />)
 
     expect(screen.queryByText('line 1')).toBeNull()
     expect(screen.queryByText('old line')).toBeNull()
   })
 
   it('toggles expansion on click', () => {
-    render(<DiffFile file={mockFile} defaultExpanded={false} />)
+    renderWithProvider(<DiffFile file={mockFile} defaultExpanded={false} />)
 
     // Initially collapsed
     expect(screen.queryByText('line 1')).toBeNull()
@@ -87,7 +96,7 @@ describe('DiffFile', () => {
       hunks: [],
     }
 
-    render(<DiffFile file={renamedFile} />)
+    renderWithProvider(<DiffFile file={renamedFile} />)
 
     expect(screen.getByText('old-name.ts → new-name.ts')).toBeDefined()
     expect(screen.getByText('Renamed')).toBeDefined()
@@ -103,7 +112,7 @@ describe('DiffFile', () => {
       hunks: [],
     }
 
-    render(<DiffFile file={renamedFile} defaultExpanded />)
+    renderWithProvider(<DiffFile file={renamedFile} defaultExpanded />)
 
     expect(screen.getByText('File renamed (no content changes)')).toBeDefined()
   })
@@ -118,7 +127,7 @@ describe('DiffFile', () => {
       hunks: [],
     }
 
-    render(<DiffFile file={addedFile} />)
+    renderWithProvider(<DiffFile file={addedFile} />)
 
     expect(screen.getByText('Added')).toBeDefined()
   })
@@ -133,7 +142,7 @@ describe('DiffFile', () => {
       hunks: [],
     }
 
-    render(<DiffFile file={deletedFile} />)
+    renderWithProvider(<DiffFile file={deletedFile} />)
 
     expect(screen.getByText('Deleted')).toBeDefined()
   })

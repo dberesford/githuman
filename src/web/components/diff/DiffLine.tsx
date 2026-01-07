@@ -14,13 +14,13 @@ interface DiffLineProps {
 }
 
 export function DiffLine ({ line, filePath, showLineNumbers = true, allowComments = false, onLineClick }: DiffLineProps) {
-  const commentContext = allowComments ? useCommentContext() : null
+  const commentContext = useCommentContext()
   const highlighter = useHighlighterContext()
   const highlightedHtml = highlighter?.getHighlightedLine(filePath, line.content)
 
   const lineKey = getLineKey(filePath, line.newLineNumber ?? line.oldLineNumber, line.type)
-  const lineComments = commentContext?.commentsByLine.get(lineKey) || []
-  const isAddingComment = commentContext?.activeCommentLine === lineKey
+  const lineComments = allowComments ? (commentContext.commentsByLine.get(lineKey) || []) : []
+  const isAddingComment = allowComments && commentContext.activeCommentLine === lineKey
 
   const bgClass = {
     added: 'bg-[var(--diff-added-bg)] border-l-4 border-[var(--diff-added-border)]',
@@ -51,11 +51,11 @@ export function DiffLine ({ line, filePath, showLineNumbers = true, allowComment
     }
     // Otherwise, use the normal comment context flow
     if (!allowComments || isAddingComment) return
-    commentContext?.setActiveCommentLine(lineKey)
+    commentContext.setActiveCommentLine(lineKey)
   }
 
   const handleSubmitComment = async (content: string, suggestion?: string) => {
-    await commentContext?.addComment({
+    await commentContext.addComment({
       filePath,
       lineNumber: line.newLineNumber ?? line.oldLineNumber ?? undefined,
       lineType: line.type,
@@ -65,7 +65,7 @@ export function DiffLine ({ line, filePath, showLineNumbers = true, allowComment
   }
 
   const handleCancelComment = () => {
-    commentContext?.setActiveCommentLine(null)
+    commentContext.setActiveCommentLine(null)
   }
 
   return (
@@ -120,10 +120,10 @@ export function DiffLine ({ line, filePath, showLineNumbers = true, allowComment
         <LineComment
           key={comment.id}
           comment={comment}
-          onResolve={commentContext?.resolveComment}
-          onUnresolve={commentContext?.unresolveComment}
-          onEdit={commentContext?.updateComment}
-          onDelete={commentContext?.deleteComment}
+          onResolve={(id) => commentContext.resolveComment(id)}
+          onUnresolve={(id) => commentContext.unresolveComment(id)}
+          onEdit={(id, content) => commentContext.updateComment(id, content)}
+          onDelete={(id) => commentContext.deleteComment(id)}
         />
       ))}
 

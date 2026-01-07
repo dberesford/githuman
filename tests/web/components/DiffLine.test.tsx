@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { DiffLine } from '../../../src/web/components/diff/DiffLine'
+import { CommentProvider } from '../../../src/web/contexts/CommentContext'
 import type { DiffLine as DiffLineType } from '../../../src/shared/types'
+
+function renderWithProvider (ui: React.ReactElement) {
+  return render(
+    <CommentProvider reviewId={null}>
+      {ui}
+    </CommentProvider>
+  )
+}
 
 describe('DiffLine', () => {
   it('renders added line with + prefix', () => {
@@ -12,7 +21,7 @@ describe('DiffLine', () => {
       newLineNumber: 5,
     }
 
-    render(<DiffLine line={line} />)
+    renderWithProvider(<DiffLine line={line} filePath='test.ts' />)
 
     expect(screen.getByText('+')).toBeDefined()
     expect(screen.getByText('new code')).toBeDefined()
@@ -27,7 +36,7 @@ describe('DiffLine', () => {
       newLineNumber: null,
     }
 
-    render(<DiffLine line={line} />)
+    renderWithProvider(<DiffLine line={line} filePath='test.ts' />)
 
     expect(screen.getByText('-')).toBeDefined()
     expect(screen.getByText('old code')).toBeDefined()
@@ -42,7 +51,7 @@ describe('DiffLine', () => {
       newLineNumber: 12,
     }
 
-    render(<DiffLine line={line} />)
+    renderWithProvider(<DiffLine line={line} filePath='test.ts' />)
 
     expect(screen.getByText('unchanged code')).toBeDefined()
     expect(screen.getByText('10')).toBeDefined()
@@ -57,7 +66,7 @@ describe('DiffLine', () => {
       newLineNumber: 1,
     }
 
-    render(<DiffLine line={line} showLineNumbers={false} />)
+    renderWithProvider(<DiffLine line={line} filePath='test.ts' showLineNumbers={false} />)
 
     expect(screen.getByText('code')).toBeDefined()
     expect(screen.queryByText('1')).toBeNull()
@@ -71,7 +80,7 @@ describe('DiffLine', () => {
       newLineNumber: 1,
     }
 
-    const { container } = render(<DiffLine line={line} />)
+    const { container } = renderWithProvider(<DiffLine line={line} filePath='test.ts' />)
 
     // The pre/code element should exist
     const code = container.querySelector('code')

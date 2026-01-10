@@ -26,7 +26,6 @@ export async function startServer (config: ServerConfig): Promise<void> {
 
   try {
     await app.listen({ port: config.port, host: config.host })
-    console.log(`Server running at http://${config.host}:${config.port}`)
   } catch (err) {
     app.log.error(err)
     closeDatabase()

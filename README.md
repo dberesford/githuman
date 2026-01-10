@@ -225,4 +225,6 @@ In the age of AI coding assistants, someone needs to review the code before it's
 
 ## License
 
-MIT
+MIT License for the code.
+
+The GitHuman logo is Copyright (c) Matteo Collina, All Rights Reserved.

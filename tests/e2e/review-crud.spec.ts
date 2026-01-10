@@ -2,23 +2,21 @@ import { test, expect } from '@playwright/test'
 import { execSync } from 'node:child_process'
 import { writeFileSync, unlinkSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
-
-// Helper to generate unique test identifiers
-const uid = () => Math.random().toString(36).substring(2, 8)
+import { TEST_REPO_PATH, uid } from './test-helpers.ts'
 
 // Test file path for staging
-const TEST_FILE = join(process.cwd(), 'test-file-for-e2e.txt')
+const TEST_FILE = join(TEST_REPO_PATH, 'test-file-for-e2e.txt')
 
 // Setup: Stage a test file so we can create reviews
 test.beforeAll(async () => {
   writeFileSync(TEST_FILE, `Test content ${uid()}\n`)
-  execSync(`git add "${TEST_FILE}"`, { cwd: process.cwd() })
+  execSync(`git add "${TEST_FILE}"`, { cwd: TEST_REPO_PATH })
 })
 
 // Cleanup: Remove test file and unstage
 test.afterAll(async () => {
   try {
-    execSync(`git reset HEAD "${TEST_FILE}"`, { cwd: process.cwd(), stdio: 'ignore' })
+    execSync(`git reset HEAD "${TEST_FILE}"`, { cwd: TEST_REPO_PATH, stdio: 'ignore' })
   } catch { /* ignore */ }
   try {
     if (existsSync(TEST_FILE)) {
@@ -133,12 +131,10 @@ test.describe('Review Detail UI', () => {
     })
 
     // Navigate to reviews list
-    await page.goto('/')
+    await page.goto('/reviews')
 
-    // Wait for the list to load
-    await page.waitForResponse((response) =>
-      response.url().includes('/api/reviews') && response.status() === 200
-    )
+    // Wait for the reviews heading to appear (page is loaded)
+    await expect(page.getByRole('heading', { name: 'Reviews' })).toBeVisible({ timeout: 10000 })
 
     // Should show at least one review in the list
     const reviewItems = page.locator('[data-testid="review-item"]')

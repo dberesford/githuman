@@ -121,4 +121,70 @@ test.describe('Todo Drawer UI', () => {
     await expect(drawer.getByText(pendingText)).toBeVisible({ timeout: 10000 })
     await expect(drawer.getByText(completedText)).toBeVisible()
   })
+
+  test('should edit a todo inline', async ({ page }) => {
+    await page.goto('/')
+    const originalText = `Edit me todo ${uid()}`
+    const updatedText = `Updated todo ${uid()}`
+
+    // Open the todo drawer and add a todo
+    await page.getByRole('button', { name: 'Toggle todos' }).click()
+    const drawer = page.getByTestId('todo-drawer')
+    await drawer.getByPlaceholder('Add a todo...').fill(originalText)
+    await drawer.getByRole('button', { name: 'Add' }).click()
+
+    // Wait for the todo to appear
+    const todoText = drawer.getByText(originalText)
+    await expect(todoText).toBeVisible()
+
+    // Double-click on the text to enter edit mode
+    await todoText.dblclick()
+
+    // The edit input is now focused - find the focused textbox (not the add input which has placeholder)
+    const editInput = drawer.locator('input:focus')
+    await expect(editInput).toBeVisible()
+    await expect(editInput).toHaveValue(originalText)
+    await editInput.clear()
+    await editInput.fill(updatedText)
+
+    // Press Enter to save
+    await editInput.press('Enter')
+
+    // Verify updated text displays
+    await expect(drawer.getByText(updatedText)).toBeVisible()
+    await expect(drawer.getByText(originalText)).not.toBeVisible()
+  })
+
+  test('should cancel todo edit with Escape', async ({ page }) => {
+    await page.goto('/')
+    const originalText = `Cancel edit todo ${uid()}`
+    const modifiedText = `Should not save ${uid()}`
+
+    // Open the todo drawer and add a todo
+    await page.getByRole('button', { name: 'Toggle todos' }).click()
+    const drawer = page.getByTestId('todo-drawer')
+    await drawer.getByPlaceholder('Add a todo...').fill(originalText)
+    await drawer.getByRole('button', { name: 'Add' }).click()
+
+    // Wait for the todo to appear
+    const todoText = drawer.getByText(originalText)
+    await expect(todoText).toBeVisible()
+
+    // Double-click on the text to enter edit mode
+    await todoText.dblclick()
+
+    // The edit input is now focused - find the focused textbox (not the add input which has placeholder)
+    const editInput = drawer.locator('input:focus')
+    await expect(editInput).toBeVisible()
+    await expect(editInput).toHaveValue(originalText)
+    await editInput.clear()
+    await editInput.fill(modifiedText)
+
+    // Press Escape to cancel
+    await editInput.press('Escape')
+
+    // Verify original text is preserved
+    await expect(drawer.getByText(originalText)).toBeVisible()
+    await expect(drawer.getByText(modifiedText)).not.toBeVisible()
+  })
 })

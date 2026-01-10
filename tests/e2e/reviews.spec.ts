@@ -2,17 +2,17 @@ import { test, expect } from '@playwright/test'
 
 test.describe('Reviews Page', () => {
   test('should display reviews list page', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/reviews')
 
     // Should show the page title
     await expect(page.getByRole('heading', { name: 'Reviews' })).toBeVisible()
 
-    // Should show "New Review" button
-    await expect(page.getByRole('link', { name: 'New Review' })).toBeVisible()
+    // Should show "New Review" button (in header, not the "Create New Review" in empty state)
+    await expect(page.getByRole('link', { name: 'New Review', exact: true })).toBeVisible()
   })
 
   test('should show empty state when no reviews exist', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/reviews')
 
     // Wait for API response
     const response = await page.waitForResponse((response) =>
@@ -28,9 +28,9 @@ test.describe('Reviews Page', () => {
   })
 
   test('should navigate to new review page when clicking New Review', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/reviews')
 
-    await page.getByRole('link', { name: 'New Review' }).click()
+    await page.getByRole('link', { name: 'New Review', exact: true }).click()
 
     await expect(page).toHaveURL('/new')
   })

@@ -384,4 +384,50 @@ describe('git.service', () => {
       assert.strictEqual(await testGit.hasUnstagedChanges(), true)
     })
   })
+
+  describe('getFilesAtRef', () => {
+    it('should return all files at HEAD', async () => {
+      const files = await git.getFilesAtRef('HEAD')
+
+      assert.ok(Array.isArray(files))
+      assert.ok(files.length > 0, 'Should have at least one file')
+      assert.ok(files.includes('package.json'), 'Should include package.json')
+    })
+
+    it('should return files at a specific commit SHA', async () => {
+      const result = await git.getCommits({ limit: 1 })
+      assert.ok(result.commits.length > 0, 'Need at least one commit to test')
+
+      const files = await git.getFilesAtRef(result.commits[0].sha)
+
+      assert.ok(Array.isArray(files))
+      assert.ok(files.length > 0)
+    })
+
+    it('should throw for invalid ref', async () => {
+      await assert.rejects(
+        async () => git.getFilesAtRef('invalid-ref-that-does-not-exist-xyz'),
+        { message: /fatal|not a valid/ }
+      )
+    })
+
+    it('should return files from test repo', async (t) => {
+      const tempDir = createTestRepoWithCommit(t)
+      const testGit = new GitService(tempDir)
+
+      // Add another file and commit - create dir first
+      execSync('mkdir -p src', { cwd: tempDir, stdio: 'ignore' })
+      writeFileSync(join(tempDir, 'src/index.ts'), 'export const x = 1;\n')
+      execSync('git add src/index.ts && git commit -m "Add src"', {
+        cwd: tempDir,
+        stdio: 'ignore',
+      })
+
+      const files = await testGit.getFilesAtRef('HEAD')
+
+      assert.ok(files.includes('README.md'), 'Should include README.md')
+      assert.ok(files.includes('src/index.ts'), 'Should include src/index.ts')
+      assert.strictEqual(files.length, 2)
+    })
+  })
 })

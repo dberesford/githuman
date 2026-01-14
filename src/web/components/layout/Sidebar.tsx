@@ -11,6 +11,8 @@ interface SidebarProps {
   showStageButtons?: boolean;
   onStageFile?: (path: string) => void;
   staging?: boolean;
+  browseMode?: boolean;
+  onBrowseModeChange?: (enabled: boolean) => void;
 }
 
 function getStatusColor (status: DiffFile['status']) {
@@ -43,7 +45,7 @@ function getStatusLabel (status: DiffFile['status']) {
   }
 }
 
-export function Sidebar ({ files, selectedFile, onFileSelect, selectedIndex, showStageButtons, onStageFile, staging }: SidebarProps) {
+export function Sidebar ({ files, selectedFile, onFileSelect, selectedIndex, showStageButtons, onStageFile, staging, browseMode, onBrowseModeChange }: SidebarProps) {
   const [filter, setFilter] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const isMobile = useIsMobile()
@@ -96,7 +98,7 @@ export function Sidebar ({ files, selectedFile, onFileSelect, selectedIndex, sho
           placeholder='Filter files...'
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className='gh-input w-full text-sm'
+          className='gh-input w-full text-base'
         />
       </div>
       <nav className='p-2 flex-1 overflow-y-auto'>
@@ -168,6 +170,32 @@ export function Sidebar ({ files, selectedFile, onFileSelect, selectedIndex, sho
         {' · '}
         <span className='font-mono text-[var(--gh-accent-primary)]'>c</span> comment
       </div>
+      {/* Mobile browse mode toggle */}
+      {isMobile && onBrowseModeChange && (
+        <div className='p-3 border-t border-[var(--gh-border)]'>
+          <label className='flex items-center justify-between cursor-pointer'>
+            <span className='text-sm text-[var(--gh-text-secondary)]'>Browse full codebase</span>
+            <span className='relative'>
+              <input
+                type='checkbox'
+                checked={browseMode}
+                onChange={(e) => onBrowseModeChange(e.target.checked)}
+                className='sr-only peer'
+              />
+              <span className={cn(
+                'block w-10 h-6 rounded-full transition-colors',
+                'peer-checked:bg-[var(--gh-accent-primary)] bg-[var(--gh-bg-elevated)]'
+              )}
+              />
+              <span className={cn(
+                'absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform',
+                'peer-checked:translate-x-4'
+              )}
+              />
+            </span>
+          </label>
+        </div>
+      )}
     </>
   )
 

@@ -135,6 +135,135 @@ describe('git routes', () => {
       assert.ok(typeof body.hasMore === 'boolean')
     })
   })
+
+  describe('GET /api/git/tree/:ref', () => {
+    it('should return file tree for HEAD', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/git/tree/HEAD',
+      })
+
+      assert.strictEqual(response.statusCode, 200)
+
+      const body = JSON.parse(response.body)
+      assert.strictEqual(body.ref, 'HEAD')
+      assert.ok(Array.isArray(body.files))
+      assert.ok(body.files.length > 0)
+      assert.ok(body.files.includes('README.md'))
+    })
+
+    it('should return file tree for specific commit', async () => {
+      // Get the first commit
+      const commitsResponse = await app.inject({
+        method: 'GET',
+        url: '/api/git/commits?limit=1',
+      })
+      const { commits } = JSON.parse(commitsResponse.body)
+      const sha = commits[0].sha
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/git/tree/${sha}`,
+      })
+
+      assert.strictEqual(response.statusCode, 200)
+
+      const body = JSON.parse(response.body)
+      assert.strictEqual(body.ref, sha)
+      assert.ok(Array.isArray(body.files))
+    })
+
+    it('should return 400 for invalid ref', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/git/tree/invalid-ref-xyz-123',
+      })
+
+      assert.strictEqual(response.statusCode, 400)
+
+      const body = JSON.parse(response.body)
+      assert.ok(body.error)
+    })
+  })
+
+  describe('GET /api/git/file/*', () => {
+    it('should return file content at HEAD', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/git/file/README.md?ref=HEAD',
+      })
+
+      assert.strictEqual(response.statusCode, 200)
+
+      const body = JSON.parse(response.body)
+      assert.strictEqual(body.path, 'README.md')
+      assert.strictEqual(body.ref, 'HEAD')
+      assert.ok(body.content.includes('# Test'))
+      assert.ok(Array.isArray(body.lines))
+      assert.ok(body.lines.length > 0)
+      assert.strictEqual(body.isBinary, false)
+    })
+
+    it('should return file content at specific commit', async () => {
+      // Get the first commit
+      const commitsResponse = await app.inject({
+        method: 'GET',
+        url: '/api/git/commits?limit=1',
+      })
+      const { commits } = JSON.parse(commitsResponse.body)
+      const sha = commits[0].sha
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/git/file/README.md?ref=${sha}`,
+      })
+
+      assert.strictEqual(response.statusCode, 200)
+
+      const body = JSON.parse(response.body)
+      assert.strictEqual(body.path, 'README.md')
+      assert.strictEqual(body.ref, sha)
+      assert.strictEqual(body.isBinary, false)
+    })
+
+    it('should return 404 for non-existent file', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/git/file/does-not-exist.txt?ref=HEAD',
+      })
+
+      assert.strictEqual(response.statusCode, 404)
+
+      const body = JSON.parse(response.body)
+      assert.ok(body.error.includes('not found'))
+    })
+
+    it('should return error for invalid ref', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/git/file/README.md?ref=invalid-ref-xyz',
+      })
+
+      // Invalid ref causes git show to fail, resulting in 404 (file not found at ref)
+      assert.ok([400, 404].includes(response.statusCode))
+
+      const body = JSON.parse(response.body)
+      assert.ok(body.error)
+    })
+
+    it('should include lineCount in response', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/git/file/README.md?ref=HEAD',
+      })
+
+      assert.strictEqual(response.statusCode, 200)
+
+      const body = JSON.parse(response.body)
+      assert.strictEqual(typeof body.lineCount, 'number')
+      assert.strictEqual(body.lineCount, body.lines.length)
+    })
+  })
 })
 
 describe('git staging routes', () => {

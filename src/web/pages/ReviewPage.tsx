@@ -1,11 +1,14 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { Sidebar } from '../components/layout/Sidebar'
 import { DiffView } from '../components/diff/DiffView'
+import { FileTreeView } from '../components/browse/FileTreeView'
+import { BrowseFileView } from '../components/browse/BrowseFileView'
 import { CommentProvider, useCommentContext, getLineKey } from '../contexts/CommentContext'
 import { useCommentStats } from '../hooks/useComments'
 import { useReview, useUpdateReview } from '../hooks/useReviews'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { useFileTree } from '../hooks/useFileTree'
 import { reviewsApi } from '../api/reviews'
 import { cn } from '../lib/utils'
 import type { ReviewStatus, ReviewSourceType } from '../../shared/types'
@@ -72,6 +75,38 @@ function InitialLineSelector () {
   return null
 }
 
+function FileTreeWithComments ({ tree, selectedFile, onFileSelect, loading, browseMode, onBrowseModeChange }: {
+  tree: import('../../shared/types').FileTreeNode[];
+  selectedFile: string | null;
+  onFileSelect: (path: string) => void;
+  loading?: boolean;
+  browseMode?: boolean;
+  onBrowseModeChange?: (enabled: boolean) => void;
+}) {
+  const { comments } = useCommentContext()
+
+  // Compute files that have comments
+  const filesWithComments = useMemo(() => {
+    const files = new Set<string>()
+    for (const comment of comments) {
+      files.add(comment.filePath)
+    }
+    return files
+  }, [comments])
+
+  return (
+    <FileTreeView
+      tree={tree}
+      selectedFile={selectedFile}
+      onFileSelect={onFileSelect}
+      loading={loading}
+      filesWithComments={filesWithComments}
+      browseMode={browseMode}
+      onBrowseModeChange={onBrowseModeChange}
+    />
+  )
+}
+
 function CommentStats ({ reviewId }: { reviewId: string }) {
   const { stats } = useCommentStats(reviewId)
 
@@ -107,6 +142,31 @@ export function ReviewPage () {
   const [selectedFileIndex, setSelectedFileIndex] = useState<number>(0)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  // Browse mode state
+  const [browseMode, setBrowseMode] = useState(false)
+  const [browseSelectedFile, setBrowseSelectedFile] = useState<string | null>(null)
+
+  // Compute ref for browse mode
+  const browseRef = useMemo(() => {
+    if (!data) return 'HEAD'
+    if (data.sourceType === 'staged') return 'HEAD'
+    if (data.sourceType === 'branch' && data.sourceRef) return data.sourceRef
+    if (data.sourceType === 'commits' && data.sourceRef) {
+      // For commit reviews, use the first commit
+      return data.sourceRef.split(',')[0] || 'HEAD'
+    }
+    return data.baseRef || 'HEAD'
+  }, [data])
+
+  // Changed file paths for highlighting in tree
+  const changedFilePaths = useMemo(() => {
+    if (!data?.files) return []
+    return data.files.map((f) => f.newPath || f.oldPath)
+  }, [data?.files])
+
+  // File tree hook
+  const { tree, loading: treeLoading } = useFileTree(browseMode ? browseRef : '', changedFilePaths)
 
   const handleNextFile = useCallback(() => {
     if (!data?.files.length) return
@@ -198,16 +258,41 @@ export function ReviewPage () {
     <CommentProvider reviewId={id!}>
       <InitialLineSelector />
       <div className='flex-1 flex min-w-0'>
-        <Sidebar
-          files={data.files}
-          selectedFile={selectedFile}
-          onFileSelect={(path) => {
-            setSelectedFile(path)
-            const index = data.files.findIndex((f) => (f.newPath || f.oldPath) === path)
-            if (index >= 0) setSelectedFileIndex(index)
-          }}
-          selectedIndex={selectedFileIndex}
-        />
+        {browseMode
+          ? (
+            <FileTreeWithComments
+              tree={tree}
+              selectedFile={browseSelectedFile}
+              onFileSelect={setBrowseSelectedFile}
+              loading={treeLoading}
+              browseMode={browseMode}
+              onBrowseModeChange={(enabled) => {
+                setBrowseMode(enabled)
+                if (!enabled) {
+                  setBrowseSelectedFile(null)
+                }
+              }}
+            />
+            )
+          : (
+            <Sidebar
+              files={data.files}
+              selectedFile={selectedFile}
+              onFileSelect={(path) => {
+                setSelectedFile(path)
+                const index = data.files.findIndex((f) => (f.newPath || f.oldPath) === path)
+                if (index >= 0) setSelectedFileIndex(index)
+              }}
+              selectedIndex={selectedFileIndex}
+              browseMode={browseMode}
+              onBrowseModeChange={(enabled) => {
+                setBrowseMode(enabled)
+                if (!enabled) {
+                  setBrowseSelectedFile(null)
+                }
+              }}
+            />
+            )}
         <div className='flex-1 flex flex-col min-w-0'>
           <div className='p-3 sm:p-4 border-b border-[var(--gh-border)] bg-[var(--gh-bg-secondary)]'>
             <div className='flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3'>
@@ -233,6 +318,31 @@ export function ReviewPage () {
                 </div>
               </div>
               <div className='flex items-center gap-2 sm:gap-3 shrink-0'>
+                {/* Browse mode toggle - hidden on mobile, shown in sidebar instead */}
+                <label className='hidden sm:flex items-center gap-2 cursor-pointer'>
+                  <input
+                    type='checkbox'
+                    checked={browseMode}
+                    onChange={(e) => {
+                      setBrowseMode(e.target.checked)
+                      if (!e.target.checked) {
+                        setBrowseSelectedFile(null)
+                      }
+                    }}
+                    className='sr-only peer'
+                  />
+                  <span className={cn(
+                    'relative w-9 h-5 rounded-full transition-colors',
+                    'peer-checked:bg-[var(--gh-accent-primary)] bg-[var(--gh-bg-elevated)]',
+                    'after:content-[""] after:absolute after:top-0.5 after:left-0.5',
+                    'after:w-4 after:h-4 after:rounded-full after:bg-white',
+                    'after:transition-transform peer-checked:after:translate-x-4'
+                  )}
+                  />
+                  <span className='text-xs text-[var(--gh-text-secondary)]'>
+                    Browse full codebase
+                  </span>
+                </label>
                 <select
                   value={data.status}
                   onChange={(e) => handleStatusChange(e.target.value as ReviewStatus)}
@@ -257,12 +367,36 @@ export function ReviewPage () {
               </div>
             </div>
           </div>
-          <DiffView
-            files={data.files}
-            summary={data.summary}
-            selectedFile={selectedFile}
-            allowComments
-          />
+          {browseMode
+            ? (
+                browseSelectedFile
+                  ? (
+                    <BrowseFileView
+                      filePath={browseSelectedFile}
+                      ref={browseRef}
+                      isChangedFile={changedFilePaths.includes(browseSelectedFile)}
+                      allowComments
+                    />
+                    )
+                  : (
+                    <div className='flex-1 flex items-center justify-center p-8'>
+                      <div className='text-center'>
+                        <svg className='w-12 h-12 mx-auto mb-4 text-[var(--gh-text-muted)]' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                          <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={1.5} d='M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z' />
+                        </svg>
+                        <p className='text-[var(--gh-text-muted)]'>Select a file from the tree to view</p>
+                      </div>
+                    </div>
+                    )
+              )
+            : (
+              <DiffView
+                files={data.files}
+                summary={data.summary}
+                selectedFile={selectedFile}
+                allowComments
+              />
+              )}
         </div>
       </div>
 

@@ -131,3 +131,26 @@ export interface DiffSummary {
   filesDeleted: number;
   filesRenamed: number;
 }
+
+// File browser types
+export interface FileTreeNode {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: FileTreeNode[];
+  isChanged?: boolean; // true if file is in the current review diff
+}
+
+export interface FileContentAtRef {
+  path: string;
+  ref: string;
+  content: string;
+  lines: string[];
+  lineCount: number;
+  isBinary: boolean;
+}
+
+export interface FileTreeResponse {
+  ref: string;
+  files: string[];
+}

@@ -110,6 +110,30 @@ const UnstageResponseSchema = Type.Object(
   { description: 'Unstage response' }
 )
 
+const FileTreeResponseSchema = Type.Object(
+  {
+    ref: Type.String({ description: 'Git ref that was resolved' }),
+    files: Type.Array(Type.String(), { description: 'List of all file paths' }),
+  },
+  { description: 'File tree response' }
+)
+
+const FileContentAtRefQuerySchema = Type.Object({
+  ref: Type.String({ description: 'Git ref (commit SHA, branch name, or HEAD)' }),
+})
+
+const FileContentAtRefResponseSchema = Type.Object(
+  {
+    path: Type.String({ description: 'File path' }),
+    ref: Type.String({ description: 'Git ref used' }),
+    content: Type.String({ description: 'File content' }),
+    lines: Type.Array(Type.String(), { description: 'Lines of content' }),
+    lineCount: Type.Integer({ description: 'Number of lines' }),
+    isBinary: Type.Boolean({ description: 'Whether the file is binary' }),
+  },
+  { description: 'File content at specific ref' }
+)
+
 const gitRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   // Helper to get git service
   const getService = () => {
@@ -316,6 +340,97 @@ const gitRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       return { success: true, unstaged: files }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to unstage files'
+      return reply.code(400).send({ error: message })
+    }
+  })
+
+  /**
+   * GET /api/git/tree/:ref
+   * List all files at a specific git ref
+   */
+  fastify.get('/api/git/tree/:ref', {
+    schema: {
+      tags: ['git'],
+      summary: 'List files at ref',
+      description: 'Get a list of all files in the repository at a specific git ref (commit, branch, or HEAD)',
+      params: Type.Object({
+        ref: Type.String({ description: 'Git ref (commit SHA, branch name, or HEAD)' }),
+      }),
+      response: {
+        200: FileTreeResponseSchema,
+        400: ErrorSchema,
+      },
+    },
+  }, async (request, reply) => {
+    const service = getService()
+    const { ref } = request.params
+
+    try {
+      const files = await service.getFilesAtRef(ref)
+      return { ref, files }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to get file tree'
+      return reply.code(400).send({ error: message })
+    }
+  })
+
+  /**
+   * GET /api/git/file/*
+   * Get file content at a specific git ref
+   */
+  fastify.get('/api/git/file/*', {
+    schema: {
+      tags: ['git'],
+      summary: 'Get file content at ref',
+      description: 'Get the content of a file at a specific git ref',
+      querystring: FileContentAtRefQuerySchema,
+      response: {
+        200: FileContentAtRefResponseSchema,
+        400: ErrorSchema,
+        404: ErrorSchema,
+      },
+    },
+  }, async (request, reply) => {
+    const service = getService()
+    const filePath = (request.params as Record<string, string>)['*']
+    const { ref } = request.query
+
+    if (!filePath) {
+      return reply.code(400).send({ error: 'File path is required' })
+    }
+
+    try {
+      const content = await service.getFileContentAtRef(filePath, ref)
+
+      if (content === null) {
+        return reply.code(404).send({ error: 'File not found' })
+      }
+
+      // Check if binary (contains null bytes)
+      const isBinary = content.includes('\0')
+
+      if (isBinary) {
+        return {
+          path: filePath,
+          ref,
+          content: '',
+          lines: [],
+          lineCount: 0,
+          isBinary: true,
+        }
+      }
+
+      const lines = content.split('\n')
+      return {
+        path: filePath,
+        ref,
+        content,
+        lines,
+        lineCount: lines.length,
+        isBinary: false,
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to get file content'
       return reply.code(400).send({ error: message })
     }
   })

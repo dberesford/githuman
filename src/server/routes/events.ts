@@ -5,7 +5,7 @@
  */
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
 import MQEmitter, { type Message, type MQEmitter as MQEmitterType } from 'mqemitter'
-import { watch, type FSWatcher } from 'node:fs'
+import chokidar, { type FSWatcher } from 'chokidar'
 import { SuccessSchema } from '../schemas/common.ts'
 
 // Event types that can be broadcast
@@ -76,16 +76,17 @@ const eventsRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
     if (fileWatcher) return
 
     try {
-      fileWatcher = watch(repoPath, { recursive: true }, (eventType, filename) => {
-        // Ignore .git directory and common non-source files
-        if (
-          !filename ||
-          filename.startsWith('.git') ||
-          filename.includes('node_modules') ||
-          filename.endsWith('.log')
-        ) {
-          return
-        }
+      fileWatcher = chokidar.watch(repoPath, {
+        ignored: [
+          /(^|[/\\])\../, // dotfiles (includes .git)
+          '**/node_modules/**',
+          '**/*.log',
+        ],
+        ignoreInitial: true,
+        persistent: true,
+      })
+
+      fileWatcher.on('all', () => {
         broadcastFileChange()
       })
 
@@ -100,9 +101,9 @@ const eventsRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
     }
   }
 
-  const stopWatching = () => {
+  const stopWatching = async () => {
     if (fileWatcher) {
-      fileWatcher.close()
+      await fileWatcher.close()
       fileWatcher = null
       fastify.log.info('File watcher stopped')
     }

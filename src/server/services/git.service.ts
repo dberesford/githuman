@@ -501,6 +501,19 @@ export class GitService {
   }
 
   /**
+   * List all files at a specific git ref (commit, branch, or HEAD)
+   */
+  async getFilesAtRef (ref: string): Promise<string[]> {
+    try {
+      const result = await this.git.raw(['ls-tree', '-r', '--name-only', ref])
+      return result.trim().split('\n').filter(Boolean)
+    } catch (err) {
+      this.log?.debug({ err, ref, repoPath: this.repoPath }, 'getFilesAtRef failed')
+      throw err
+    }
+  }
+
+  /**
    * Get recent commits with pagination and search
    */
   async getCommits (options: GetCommitsOptions = {}): Promise<GetCommitsResult> {

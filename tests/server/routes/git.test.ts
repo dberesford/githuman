@@ -184,6 +184,63 @@ describe('git routes', () => {
       const body = JSON.parse(response.body)
       assert.ok(body.error)
     })
+
+    it('should include untracked files when includeWorkingDir=true', async () => {
+      // Create an untracked file
+      writeFileSync(join(tempDir, 'untracked-test.txt'), 'content\n')
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/git/tree/HEAD?includeWorkingDir=true',
+      })
+
+      assert.strictEqual(response.statusCode, 200)
+
+      const body = JSON.parse(response.body)
+      assert.ok(body.files.includes('untracked-test.txt'), 'Should include untracked file')
+      assert.ok(body.files.includes('README.md'), 'Should still include committed files')
+
+      // Clean up
+      rmSync(join(tempDir, 'untracked-test.txt'))
+    })
+
+    it('should include staged new files when includeWorkingDir=true', async () => {
+      // Create and stage a new file
+      writeFileSync(join(tempDir, 'staged-test.txt'), 'content\n')
+      execSync('git add staged-test.txt', { cwd: tempDir, stdio: 'ignore' })
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/git/tree/HEAD?includeWorkingDir=true',
+      })
+
+      assert.strictEqual(response.statusCode, 200)
+
+      const body = JSON.parse(response.body)
+      assert.ok(body.files.includes('staged-test.txt'), 'Should include staged new file')
+
+      // Clean up - unstage and remove
+      execSync('git reset HEAD staged-test.txt', { cwd: tempDir, stdio: 'ignore' })
+      rmSync(join(tempDir, 'staged-test.txt'))
+    })
+
+    it('should not include new files when includeWorkingDir is not set', async () => {
+      // Create an untracked file
+      writeFileSync(join(tempDir, 'not-included.txt'), 'content\n')
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/git/tree/HEAD',
+      })
+
+      assert.strictEqual(response.statusCode, 200)
+
+      const body = JSON.parse(response.body)
+      assert.ok(!body.files.includes('not-included.txt'), 'Should not include untracked file')
+
+      // Clean up
+      rmSync(join(tempDir, 'not-included.txt'))
+    })
   })
 
   describe('GET /api/git/file/*', () => {

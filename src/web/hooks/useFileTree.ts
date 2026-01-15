@@ -99,12 +99,13 @@ interface UseFileTreeResult {
   refetch: () => void;
 }
 
-export function useFileTree (ref: string, changedFilePaths: string[]): UseFileTreeResult {
+export function useFileTree (ref: string, changedFilePaths: string[], options?: { includeWorkingDir?: boolean }): UseFileTreeResult {
   const [data, setData] = useState<FileTreeResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
   const changedSet = useMemo(() => new Set(changedFilePaths), [changedFilePaths])
+  const includeWorkingDir = options?.includeWorkingDir ?? false
 
   const tree = useMemo(() => {
     if (!data) return []
@@ -117,14 +118,14 @@ export function useFileTree (ref: string, changedFilePaths: string[]): UseFileTr
     setLoading(true)
     setError(null)
     try {
-      const result = await gitApi.getFileTree(ref)
+      const result = await gitApi.getFileTree(ref, { includeWorkingDir })
       setData(result)
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch file tree'))
     } finally {
       setLoading(false)
     }
-  }, [ref])
+  }, [ref, includeWorkingDir])
 
   useEffect(() => {
     fetchData()

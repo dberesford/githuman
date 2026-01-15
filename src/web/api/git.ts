@@ -8,8 +8,13 @@ export const gitApi = {
   /**
    * Get list of all files at a git ref
    */
-  getFileTree: async (ref: string): Promise<FileTreeResponse> => {
-    return api.get<FileTreeResponse>(`/git/tree/${encodeURIComponent(ref)}`)
+  getFileTree: async (ref: string, options?: { includeWorkingDir?: boolean }): Promise<FileTreeResponse> => {
+    const params = new URLSearchParams()
+    if (options?.includeWorkingDir) {
+      params.set('includeWorkingDir', 'true')
+    }
+    const query = params.toString()
+    return api.get<FileTreeResponse>(`/git/tree/${encodeURIComponent(ref)}${query ? `?${query}` : ''}`)
   },
 
   /**

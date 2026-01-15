@@ -356,6 +356,9 @@ const gitRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       params: Type.Object({
         ref: Type.String({ description: 'Git ref (commit SHA, branch name, or HEAD)' }),
       }),
+      querystring: Type.Object({
+        includeWorkingDir: Type.Optional(Type.Boolean({ description: 'Include new files from working directory (staged + untracked)' })),
+      }),
       response: {
         200: FileTreeResponseSchema,
         400: ErrorSchema,
@@ -364,9 +367,23 @@ const gitRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
   }, async (request, reply) => {
     const service = getService()
     const { ref } = request.params
+    const { includeWorkingDir } = request.query
 
     try {
-      const files = await service.getFilesAtRef(ref)
+      let files = await service.getFilesAtRef(ref)
+
+      // Optionally include new files from working directory
+      if (includeWorkingDir) {
+        const newFiles = await service.getWorkingDirectoryNewFiles()
+        if (newFiles.length > 0) {
+          const fileSet = new Set(files)
+          for (const file of newFiles) {
+            fileSet.add(file)
+          }
+          files = Array.from(fileSet).sort()
+        }
+      }
+
       return { ref, files }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to get file tree'

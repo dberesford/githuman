@@ -430,4 +430,78 @@ describe('git.service', () => {
       assert.strictEqual(files.length, 2)
     })
   })
+
+  describe('getWorkingDirectoryNewFiles', () => {
+    it('should return empty array when no new files', async (t) => {
+      const tempDir = createTestRepoWithCommit(t)
+      const testGit = new GitService(tempDir)
+
+      const files = await testGit.getWorkingDirectoryNewFiles()
+      assert.deepStrictEqual(files, [])
+    })
+
+    it('should return untracked files', async (t) => {
+      const tempDir = createTestRepoWithCommit(t)
+      const testGit = new GitService(tempDir)
+
+      // Create a new untracked file
+      writeFileSync(join(tempDir, 'new-file.txt'), 'content\n')
+
+      const files = await testGit.getWorkingDirectoryNewFiles()
+      assert.ok(files.includes('new-file.txt'), 'Should include untracked file')
+    })
+
+    it('should return staged new files', async (t) => {
+      const tempDir = createTestRepoWithCommit(t)
+      const testGit = new GitService(tempDir)
+
+      // Create and stage a new file
+      writeFileSync(join(tempDir, 'staged-new.txt'), 'content\n')
+      execSync('git add staged-new.txt', { cwd: tempDir, stdio: 'ignore' })
+
+      const files = await testGit.getWorkingDirectoryNewFiles()
+      assert.ok(files.includes('staged-new.txt'), 'Should include staged new file')
+    })
+
+    it('should return both untracked and staged new files', async (t) => {
+      const tempDir = createTestRepoWithCommit(t)
+      const testGit = new GitService(tempDir)
+
+      // Create an untracked file
+      writeFileSync(join(tempDir, 'untracked.txt'), 'content\n')
+
+      // Create and stage a new file
+      writeFileSync(join(tempDir, 'staged.txt'), 'content\n')
+      execSync('git add staged.txt', { cwd: tempDir, stdio: 'ignore' })
+
+      const files = await testGit.getWorkingDirectoryNewFiles()
+      assert.ok(files.includes('untracked.txt'), 'Should include untracked file')
+      assert.ok(files.includes('staged.txt'), 'Should include staged new file')
+      assert.strictEqual(files.length, 2)
+    })
+
+    it('should not include modified files', async (t) => {
+      const tempDir = createTestRepoWithCommit(t)
+      const testGit = new GitService(tempDir)
+
+      // Modify an existing tracked file
+      writeFileSync(join(tempDir, 'README.md'), '# Updated\n')
+
+      const files = await testGit.getWorkingDirectoryNewFiles()
+      assert.ok(!files.includes('README.md'), 'Should not include modified file')
+      assert.strictEqual(files.length, 0)
+    })
+
+    it('should handle files in subdirectories', async (t) => {
+      const tempDir = createTestRepoWithCommit(t)
+      const testGit = new GitService(tempDir)
+
+      // Create a new file in a subdirectory
+      execSync('mkdir -p src/utils', { cwd: tempDir, stdio: 'ignore' })
+      writeFileSync(join(tempDir, 'src/utils/helper.ts'), 'export const x = 1;\n')
+
+      const files = await testGit.getWorkingDirectoryNewFiles()
+      assert.ok(files.includes('src/utils/helper.ts'), 'Should include file with full path')
+    })
+  })
 })

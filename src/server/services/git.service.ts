@@ -514,6 +514,29 @@ export class GitService {
   }
 
   /**
+   * Get new files in the working directory (staged new files + untracked files)
+   * These are files that don't exist at the given ref but exist in working directory
+   */
+  async getWorkingDirectoryNewFiles (): Promise<string[]> {
+    try {
+      // Get staged new files (files added to index that don't exist in HEAD)
+      const stagedNew = await this.git.raw(['diff', '--cached', '--name-only', '--diff-filter=A'])
+      const stagedNewFiles = stagedNew.trim().split('\n').filter(Boolean)
+
+      // Get untracked files
+      const untracked = await this.git.raw(['ls-files', '--others', '--exclude-standard'])
+      const untrackedFiles = untracked.trim().split('\n').filter(Boolean)
+
+      // Combine and dedupe
+      const allNewFiles = new Set([...stagedNewFiles, ...untrackedFiles])
+      return Array.from(allNewFiles)
+    } catch (err) {
+      this.log?.debug({ err, repoPath: this.repoPath }, 'getWorkingDirectoryNewFiles failed')
+      return []
+    }
+  }
+
+  /**
    * Get recent commits with pagination and search
    */
   async getCommits (options: GetCommitsOptions = {}): Promise<GetCommitsResult> {

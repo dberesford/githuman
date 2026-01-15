@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Sidebar } from '../components/layout/Sidebar'
-import { DiffView } from '../components/diff/DiffView'
+import { BrowsableDiffView } from '../components/diff/BrowsableDiffView'
 import { CommentProvider, useCommentContext, getLineKey } from '../contexts/CommentContext'
 import { useStagedDiff, useUnstagedDiff, useGitStaging } from '../hooks/useStagedDiff'
 import { useCreateReview } from '../hooks/useReviews'
 import { useServerEvents } from '../hooks/useServerEvents'
+import { cn } from '../lib/utils'
 
 type TabType = 'staged' | 'unstaged'
 
@@ -47,6 +47,22 @@ export function StagedChangesPage () {
     lineNumber: number;
     lineType: 'added' | 'removed' | 'context';
   } | null>(null)
+
+  // Browse mode state (controlled by parent, passed to BrowsableDiffView)
+  const [browseMode, setBrowseMode] = useState(false)
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
+
+  // Changed file paths for highlighting in tree (combine staged and unstaged)
+  const changedFilePaths = useMemo(() => {
+    const paths: string[] = []
+    if (staged.data?.files) {
+      paths.push(...staged.data.files.map((f) => f.newPath || f.oldPath))
+    }
+    if (unstaged.data?.files) {
+      paths.push(...unstaged.data.files.map((f) => f.newPath || f.oldPath))
+    }
+    return paths
+  }, [staged.data?.files, unstaged.data?.files])
 
   // Refresh both when staging changes
   const handleStagingSuccess = useCallback(() => {
@@ -205,6 +221,26 @@ export function StagedChangesPage () {
                 )}
               </button>
             </div>
+            {/* Browse mode toggle */}
+            <label className='hidden sm:flex items-center gap-2 cursor-pointer ml-4'>
+              <input
+                type='checkbox'
+                checked={browseMode}
+                onChange={(e) => setBrowseMode(e.target.checked)}
+                className='sr-only peer'
+              />
+              <span className={cn(
+                'relative w-9 h-5 rounded-full transition-colors',
+                'peer-checked:bg-[var(--gh-accent-primary)] bg-[var(--gh-bg-elevated)]',
+                'after:content-[""] after:absolute after:top-0.5 after:left-0.5',
+                'after:w-4 after:h-4 after:rounded-full after:bg-white',
+                'after:transition-transform peer-checked:after:translate-x-4'
+              )}
+              />
+              <span className='text-xs text-[var(--gh-text-secondary)]'>
+                Browse full codebase
+              </span>
+            </label>
             <div className='flex-1' />
             {/* Action buttons */}
             {activeTab === 'unstaged' && hasUnstagedChanges && (
@@ -302,45 +338,47 @@ export function StagedChangesPage () {
               </div>
               )
             : (
-              <div className='flex-1 flex min-w-0'>
-                {currentData && (
-                  <>
-                    <Sidebar
-                      files={currentFiles}
-                      selectedFile={selectedFile}
-                      onFileSelect={setSelectedFile}
-                      showStageButtons={activeTab === 'unstaged'}
-                      onStageFile={handleStageFile}
-                      staging={staging}
-                    />
-                    <div className='flex-1 flex flex-col min-w-0'>
-                      {activeTab === 'staged' && hasStagedChanges && (
-                        <div className='p-3 sm:p-4 border-b border-[var(--gh-border)] bg-[var(--gh-bg-tertiary)]'>
-                          <div className='text-xs sm:text-sm text-[var(--gh-text-secondary)]'>
-                            {reviewId
-                              ? 'Click on any line to add comments'
-                              : 'Click on a line to start a review, or use the Create Review button'}
+                currentData && (
+                  <BrowsableDiffView
+                    files={currentFiles}
+                    summary={currentData.summary}
+                    selectedFile={selectedFile}
+                    onFileSelect={setSelectedFile}
+                    allowComments={activeTab === 'staged' && !!reviewId}
+                    onLineClick={activeTab === 'staged' && !reviewId ? handleLineClick : undefined}
+                    showStageButtons={activeTab === 'unstaged'}
+                    onStageFile={handleStageFile}
+                    staging={staging}
+                    browseRef='HEAD'
+                    changedFilePaths={changedFilePaths}
+                    includeWorkingDir
+                    browseMode={browseMode}
+                    onBrowseModeChange={setBrowseMode}
+                    mobileDrawerOpen={mobileDrawerOpen}
+                    onMobileDrawerChange={setMobileDrawerOpen}
+                    showHeaderToggle={false}
+                    contentHeader={
+                      <>
+                        {activeTab === 'staged' && hasStagedChanges && (
+                          <div className='p-3 sm:p-4 border-b border-[var(--gh-border)] bg-[var(--gh-bg-tertiary)]'>
+                            <div className='text-xs sm:text-sm text-[var(--gh-text-secondary)]'>
+                              {reviewId
+                                ? 'Click on any line to add comments'
+                                : 'Click on a line to start a review, or use the Create Review button'}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      {activeTab === 'unstaged' && hasUnstagedChanges && (
-                        <div className='p-3 sm:p-4 border-b border-[var(--gh-border)] bg-[var(--gh-bg-tertiary)]'>
-                          <div className='text-xs sm:text-sm text-[var(--gh-text-secondary)]'>
-                            Click the <span className='font-medium text-[var(--gh-accent-primary)]'>+</span> button next to a file to stage it, or use Stage All
+                        )}
+                        {activeTab === 'unstaged' && hasUnstagedChanges && (
+                          <div className='p-3 sm:p-4 border-b border-[var(--gh-border)] bg-[var(--gh-bg-tertiary)]'>
+                            <div className='text-xs sm:text-sm text-[var(--gh-text-secondary)]'>
+                              Click the <span className='font-medium text-[var(--gh-accent-primary)]'>+</span> button next to a file to stage it, or use Stage All
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      <DiffView
-                        files={currentFiles}
-                        summary={currentData.summary}
-                        selectedFile={selectedFile}
-                        allowComments={activeTab === 'staged' && !!reviewId}
-                        onLineClick={activeTab === 'staged' && !reviewId ? handleLineClick : undefined}
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
+                        )}
+                      </>
+                  }
+                  />
+                )
               )}
       </div>
     </CommentProvider>

@@ -18,8 +18,9 @@ interface EventMessage extends Message {
   timestamp: number;
 }
 
-// Track connected clients for the /clients endpoint
+// Track connected clients for the /clients endpoint and graceful shutdown
 let clientCount = 0
+const activeConnections = new Set<{ close: () => void }>()
 
 /**
  * Broadcast an event to all connected SSE clients via mqemitter
@@ -114,7 +115,21 @@ const eventsRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
 
   // Clean up on server close
   fastify.addHook('onClose', async () => {
-    stopWatching()
+    // Close all active SSE connections
+    fastify.log.info({ clients: activeConnections.size }, 'Closing active SSE connections')
+    for (const connection of activeConnections) {
+      try {
+        connection.close()
+      } catch {
+        // Ignore errors when closing connections
+      }
+    }
+    activeConnections.clear()
+
+    // Close the event emitter
+    await new Promise<void>((resolve) => emitter.close(resolve))
+
+    await stopWatching()
   })
 
   /**
@@ -135,6 +150,10 @@ const eventsRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
     async (request, reply) => {
       clientCount++
       request.log.info({ clients: clientCount }, 'SSE client connected')
+
+      // Track this connection for graceful shutdown
+      const connection = { close: () => reply.sse.close() }
+      activeConnections.add(connection)
 
       // Keep the connection alive
       reply.sse.keepAlive()
@@ -160,6 +179,7 @@ const eventsRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
       // Clean up on disconnect
       reply.sse.onClose(() => {
         clientCount--
+        activeConnections.delete(connection)
         fastify.eventEmitter.removeListener('events', listener)
         request.log.info({ clients: clientCount }, 'SSE client disconnected')
       })

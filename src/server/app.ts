@@ -52,6 +52,7 @@ export async function buildApp (
 ): Promise<FastifyInstance> {
   const app = Fastify({
     logger: getLoggerConfig(options.logger ?? true),
+    forceCloseConnections: true, // Close all connections on shutdown (important for SSE)
   }).withTypeProvider<TypeBoxTypeProvider>()
 
   // Register request context plugin

@@ -6,7 +6,27 @@
 import { Type, type FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
 import MQEmitter, { type Message, type MQEmitter as MQEmitterType } from 'mqemitter'
 import chokidar, { type FSWatcher } from 'chokidar'
+import ignore, { type Ignore } from 'ignore'
+import { readFileSync, existsSync } from 'node:fs'
+import { join, relative } from 'node:path'
 import { SuccessSchema } from '../schemas/common.ts'
+
+/**
+ * Load .gitignore patterns from the repository
+ */
+function loadGitignore (repoPath: string): Ignore {
+  const ig = ignore()
+  // Always ignore .git directory
+  ig.add('.git')
+
+  const gitignorePath = join(repoPath, '.gitignore')
+  if (existsSync(gitignorePath)) {
+    const content = readFileSync(gitignorePath, 'utf-8')
+    ig.add(content)
+  }
+
+  return ig
+}
 
 // Event types that can be broadcast
 export type EventType = 'todos' | 'reviews' | 'comments' | 'files'
@@ -77,12 +97,17 @@ const eventsRoutes: FastifyPluginAsyncTypebox = async (fastify) => {
     if (fileWatcher) return
 
     try {
+      // Load gitignore patterns for filtering
+      const ig = loadGitignore(repoPath)
+
       fileWatcher = chokidar.watch(repoPath, {
-        ignored: [
-          /(^|[/\\])\../, // dotfiles (includes .git)
-          '**/node_modules/**',
-          '**/*.log',
-        ],
+        ignored: (filePath: string) => {
+          // Get path relative to repo root for gitignore matching
+          const relativePath = relative(repoPath, filePath)
+          // Empty relative path means it's the repo root itself
+          if (!relativePath) return false
+          return ig.ignores(relativePath)
+        },
         ignoreInitial: true,
         persistent: true,
         // Use polling on macOS to avoid FSEvents file descriptor issues

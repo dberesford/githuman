@@ -49,7 +49,7 @@ describe('diff routes', () => {
       })
 
       const body = JSON.parse(response.body)
-      assert.strictEqual(body.name, 'local-code-reviewier')
+      assert.strictEqual(body.name, 'githuman')
     })
   })
 

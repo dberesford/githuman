@@ -88,7 +88,7 @@ describe('auth plugin', () => {
 
       assert.strictEqual(response.statusCode, 401)
       const body = JSON.parse(response.body)
-      assert.strictEqual(body.message, 'Invalid token')
+      assert.strictEqual(body.message, 'Missing or invalid authorization')
     })
 
     it('should allow requests with correct token', async () => {
@@ -117,6 +117,37 @@ describe('auth plugin', () => {
       const response = await app.inject({
         method: 'GET',
         url: '/static/file.js',
+      })
+
+      assert.strictEqual(response.statusCode, 200)
+    })
+
+    it('should allow requests with token in query parameter', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/test?token=${TOKEN}`,
+      })
+
+      assert.strictEqual(response.statusCode, 200)
+      assert.deepStrictEqual(JSON.parse(response.body), { message: 'ok' })
+    })
+
+    it('should reject requests with wrong token in query parameter', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/test?token=wrong-token',
+      })
+
+      assert.strictEqual(response.statusCode, 401)
+    })
+
+    it('should prefer valid header token over invalid query token', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/test?token=wrong-token',
+        headers: {
+          authorization: `Bearer ${TOKEN}`,
+        },
       })
 
       assert.strictEqual(response.statusCode, 200)

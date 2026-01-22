@@ -33,23 +33,26 @@ const authPlugin: FastifyPluginAsync<AuthPluginOptions> = async (
       return
     }
 
+    // Check Authorization header first
     const header = request.headers.authorization
-    if (!header?.startsWith('Bearer ')) {
-      return reply.code(401).send({
-        error: 'Unauthorized',
-        message: 'Missing or invalid Authorization header',
-        statusCode: 401,
-      })
+    if (header?.startsWith('Bearer ')) {
+      const providedToken = header.slice(7)
+      if (providedToken === token) {
+        return
+      }
     }
 
-    const providedToken = header.slice(7)
-    if (providedToken !== token) {
-      return reply.code(401).send({
-        error: 'Unauthorized',
-        message: 'Invalid token',
-        statusCode: 401,
-      })
+    // Fall back to query parameter (needed for SSE since EventSource can't send headers)
+    const queryToken = (request.query as Record<string, string>)?.token
+    if (queryToken === token) {
+      return
     }
+
+    return reply.code(401).send({
+      error: 'Unauthorized',
+      message: 'Missing or invalid authorization',
+      statusCode: 401,
+    })
   })
 }
 

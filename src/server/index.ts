@@ -2,9 +2,30 @@
  * Server entry point
  */
 import closeWithGrace from 'close-with-grace'
+import { networkInterfaces } from 'node:os'
 import { buildApp, type AppOptions } from './app.ts'
 import { initDatabase, closeDatabase } from './db/index.ts'
 import type { ServerConfig } from './config.ts'
+
+/**
+ * Get all IPv4 addresses to display when server binds to 0.0.0.0
+ */
+function getNetworkAddresses (): string[] {
+  const addresses: string[] = ['127.0.0.1']
+  const interfaces = networkInterfaces()
+
+  for (const nets of Object.values(interfaces)) {
+    if (!nets) continue
+    for (const net of nets) {
+      // Include non-internal IPv4 addresses
+      if (!net.internal && net.family === 'IPv4') {
+        addresses.push(net.address)
+      }
+    }
+  }
+
+  return addresses
+}
 
 export async function startServer (config: ServerConfig, options: AppOptions = {}): Promise<void> {
   // Initialize database
@@ -29,10 +50,15 @@ export async function startServer (config: ServerConfig, options: AppOptions = {
 
     // Log URLs with token for easy access (double-clickable in terminals)
     if (config.authToken) {
-      const addresses = app.addresses()
-      for (const addr of addresses) {
-        if (addr.family === 'IPv4') {
-          const url = `http://${addr.address}:${addr.port}?token=${config.authToken}`
+      const serverAddr = app.addresses().find(a => a.family === 'IPv4')
+      if (serverAddr) {
+        // If bound to 0.0.0.0, show all network addresses
+        const addresses = serverAddr.address === '0.0.0.0'
+          ? getNetworkAddresses()
+          : [serverAddr.address]
+
+        for (const addr of addresses) {
+          const url = `http://${addr}:${serverAddr.port}?token=${config.authToken}`
           app.log.info(`GitHuman running at: ${url}`)
         }
       }

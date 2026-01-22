@@ -108,15 +108,16 @@ describe('ReviewService', () => {
       const tempDir = createTestRepo(t)
       const service = new ReviewService(db, tempDir)
 
+      // Get the main branch name
+      const mainBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: tempDir }).toString().trim()
+
       // Create a feature branch with changes
       execSync('git checkout -b feature', { cwd: tempDir, stdio: 'ignore' })
       writeFileSync(join(tempDir, 'branch-file.ts'), 'const z = 3;\n')
       execSync('git add branch-file.ts && git commit -m "Add branch file"', { cwd: tempDir, stdio: 'ignore' })
 
-      // Go back to main
-      execSync('git checkout master || git checkout main', { cwd: tempDir, stdio: 'ignore' })
-
-      const review = await service.create({ sourceType: 'branch', sourceRef: 'feature' })
+      // Stay on feature branch and compare against main (shows what's in feature, not in main)
+      const review = await service.create({ sourceType: 'branch', sourceRef: mainBranch })
 
       // Verify review was created
       assert.ok(review.id)
@@ -220,15 +221,16 @@ describe('ReviewService', () => {
       const tempDir = createTestRepo(t)
       const service = new ReviewService(db, tempDir)
 
+      // Get the main branch name
+      const mainBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: tempDir }).toString().trim()
+
       // Create a feature branch with changes
       execSync('git checkout -b feature', { cwd: tempDir, stdio: 'ignore' })
       writeFileSync(join(tempDir, 'branch-file.ts'), 'const z = 3;\n')
       execSync('git add branch-file.ts && git commit -m "Add branch file"', { cwd: tempDir, stdio: 'ignore' })
 
-      // Go back to main
-      execSync('git checkout master || git checkout main', { cwd: tempDir, stdio: 'ignore' })
-
-      const review = await service.create({ sourceType: 'branch', sourceRef: 'feature' })
+      // Stay on feature branch and compare against main (shows what's in feature, not in main)
+      const review = await service.create({ sourceType: 'branch', sourceRef: mainBranch })
 
       // Hunks should be regenerated from git
       const hunks = await service.getFileHunks(review.id, 'branch-file.ts')

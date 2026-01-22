@@ -487,11 +487,11 @@ export class GitService {
 
   /**
    * Get diff between current branch and another branch
-   * Shows what's in targetBranch that's not in HEAD (for code review)
+   * Shows what's in HEAD that's not in targetBranch (for code review)
    */
   async getBranchDiff (targetBranch: string): Promise<string> {
-    // Get diff from HEAD to target branch (shows what's in target branch, not in HEAD)
-    const diff = await this.git.diff([`HEAD...${targetBranch}`])
+    // Get diff from target branch to HEAD (shows what's in HEAD, not in target branch)
+    const diff = await this.git.diff([`${targetBranch}...HEAD`])
     return diff
   }
 
@@ -500,7 +500,7 @@ export class GitService {
    */
   async getBranchFileDiff (targetBranch: string, filePath: string): Promise<string> {
     try {
-      const diff = await this.git.diff([`HEAD...${targetBranch}`, '--', filePath])
+      const diff = await this.git.diff([`${targetBranch}...HEAD`, '--', filePath])
       return diff
     } catch (err) {
       this.log?.debug({ err, targetBranch, filePath }, 'getBranchFileDiff failed')

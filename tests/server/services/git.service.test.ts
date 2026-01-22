@@ -259,15 +259,16 @@ describe('git.service', () => {
       const tempDir = createTestRepoWithCommit(t)
       const testGit = new GitService(tempDir)
 
+      // Get the main branch name
+      const mainBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: tempDir }).toString().trim()
+
       // Create a feature branch with changes
       execSync('git checkout -b feature', { cwd: tempDir, stdio: 'ignore' })
       writeFileSync(join(tempDir, 'feature.ts'), 'const y = 1;\n')
       execSync('git add feature.ts && git commit -m "Add feature.ts"', { cwd: tempDir, stdio: 'ignore' })
 
-      // Go back to main
-      execSync('git checkout master || git checkout main', { cwd: tempDir, stdio: 'ignore' })
-
-      const diff = await testGit.getBranchFileDiff('feature', 'feature.ts')
+      // Stay on feature branch and compare against main (shows what's in feature, not in main)
+      const diff = await testGit.getBranchFileDiff(mainBranch, 'feature.ts')
       assert.ok(diff.includes('feature.ts'))
       assert.ok(diff.includes('+const y = 1;'))
     })
@@ -276,16 +277,16 @@ describe('git.service', () => {
       const tempDir = createTestRepoWithCommit(t)
       const testGit = new GitService(tempDir)
 
+      // Get the main branch name
+      const mainBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: tempDir }).toString().trim()
+
       // Create a feature branch with changes to a different file
       execSync('git checkout -b feature', { cwd: tempDir, stdio: 'ignore' })
       writeFileSync(join(tempDir, 'other.ts'), 'const z = 1;\n')
       execSync('git add other.ts && git commit -m "Add other.ts"', { cwd: tempDir, stdio: 'ignore' })
 
-      // Go back to main
-      execSync('git checkout master || git checkout main', { cwd: tempDir, stdio: 'ignore' })
-
-      // Request diff for a file that wasn't changed
-      const diff = await testGit.getBranchFileDiff('feature', 'README.md')
+      // Stay on feature branch, request diff for a file that wasn't changed
+      const diff = await testGit.getBranchFileDiff(mainBranch, 'README.md')
       assert.strictEqual(diff.trim(), '')
     })
 

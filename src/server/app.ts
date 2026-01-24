@@ -6,6 +6,7 @@ import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox'
 import { fastifyRequestContext, requestContext } from '@fastify/request-context'
 import fastifySwagger from '@fastify/swagger'
 import fastifySwaggerUi from '@fastify/swagger-ui'
+import helmet from '@fastify/helmet'
 import cors from '@fastify/cors'
 import fastifyStatic from '@fastify/static'
 import fastifySSE from '@fastify/sse'
@@ -66,6 +67,40 @@ export async function buildApp (
   app.addHook('onRequest', (request, _reply, done) => {
     request.requestContext.set('log', request.log)
     done()
+  })
+
+  // Register security headers with helmet
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"], // Needed for Swagger UI and Vite
+        styleSrc: ["'self'", "'unsafe-inline'"], // Needed for inline styles
+        imgSrc: ["'self'", 'data:', 'blob:'], // Allow data URIs for images
+        fontSrc: ["'self'"],
+        connectSrc: ["'self'"], // For API calls and SSE
+        objectSrc: ["'none'"],
+        frameSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"], // Prevent clickjacking
+        upgradeInsecureRequests: null, // Disable for local HTTP development
+      },
+    },
+    // Prevent MIME type sniffing
+    crossOriginEmbedderPolicy: false, // Disable for compatibility with external resources
+    crossOriginOpenerPolicy: { policy: 'same-origin' },
+    crossOriginResourcePolicy: { policy: 'same-origin' },
+    originAgentCluster: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    // Disable HSTS for local HTTP development
+    strictTransportSecurity: false,
+    xContentTypeOptions: true,
+    xDnsPrefetchControl: { allow: false },
+    xDownloadOptions: true,
+    xFrameOptions: { action: 'deny' },
+    xPermittedCrossDomainPolicies: { permittedPolicies: 'none' },
+    xXssProtection: true,
   })
 
   // Register Swagger for OpenAPI documentation

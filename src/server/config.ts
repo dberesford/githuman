@@ -12,6 +12,9 @@ export interface ServerConfig {
   authToken: string | null; // null means no auth (localhost only)
   repositoryPath: string;
   dbPath: string;
+  https: boolean;
+  tlsCert?: string; // PEM content
+  tlsKey?: string; // PEM content
 }
 
 /**
@@ -71,5 +74,8 @@ export function createConfig (options: Partial<ServerConfig> = {}): ServerConfig
     authToken,
     repositoryPath,
     dbPath,
+    https: options.https ?? false,
+    tlsCert: options.tlsCert,
+    tlsKey: options.tlsKey,
   }
 }

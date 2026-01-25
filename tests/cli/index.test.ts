@@ -135,6 +135,54 @@ describe('CLI', () => {
       assert.ok(result.stdout.includes('auto-generate'))
       assert.ok(result.stdout.includes('--auth [token]'))
     })
+
+    it('should include --no-https in help text', async () => {
+      const result = await runCli(['serve', '--help'])
+
+      assert.strictEqual(result.exitCode, 0)
+      assert.ok(result.stdout.includes('--no-https'))
+      assert.ok(result.stdout.includes('Disable HTTPS'))
+    })
+
+    it('should mention HTTPS auto-enable in help text', async () => {
+      const result = await runCli(['serve', '--help'])
+
+      assert.strictEqual(result.exitCode, 0)
+      assert.ok(result.stdout.includes('HTTPS auto-enabled'))
+      assert.ok(result.stdout.includes('self-signed certificate'))
+    })
+
+    it('should include --cert and --key in help text', async () => {
+      const result = await runCli(['serve', '--help'])
+
+      assert.strictEqual(result.exitCode, 0)
+      assert.ok(result.stdout.includes('--cert <path>'))
+      assert.ok(result.stdout.includes('--key <path>'))
+      assert.ok(result.stdout.includes('TLS certificate file'))
+      assert.ok(result.stdout.includes('TLS private key file'))
+    })
+
+    it('should include --https flag in help text', async () => {
+      const result = await runCli(['serve', '--help'])
+
+      assert.strictEqual(result.exitCode, 0)
+      assert.ok(result.stdout.includes('--https'))
+      assert.ok(result.stdout.includes('Force HTTPS'))
+    })
+
+    it('should error when --cert provided without --key', async () => {
+      const result = await runCli(['serve', '--cert', '/path/to/cert.pem', '--no-open'])
+
+      assert.strictEqual(result.exitCode, 1)
+      assert.ok(result.stderr.includes('--cert and --key must be specified together'))
+    })
+
+    it('should error when --key provided without --cert', async () => {
+      const result = await runCli(['serve', '--key', '/path/to/key.pem', '--no-open'])
+
+      assert.strictEqual(result.exitCode, 1)
+      assert.ok(result.stderr.includes('--cert and --key must be specified together'))
+    })
   })
 
   describe('list command', () => {

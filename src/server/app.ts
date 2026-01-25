@@ -55,9 +55,15 @@ export async function buildApp (
   config: ServerConfig,
   options: AppOptions = {}
 ): Promise<FastifyInstance> {
+  // Configure HTTPS if enabled with valid certificates
+  const httpsOptions = config.https && config.tlsCert && config.tlsKey
+    ? { https: { cert: config.tlsCert, key: config.tlsKey } }
+    : {}
+
   const app = Fastify({
     logger: getLoggerConfig(options.logger ?? true, options.verbose ?? false),
     forceCloseConnections: true, // Close all connections on shutdown (important for SSE)
+    ...httpsOptions,
   }).withTypeProvider<TypeBoxTypeProvider>()
 
   // Register request context plugin
@@ -93,8 +99,10 @@ export async function buildApp (
     crossOriginResourcePolicy: { policy: 'same-origin' },
     originAgentCluster: true,
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-    // Disable HSTS for local HTTP development
-    strictTransportSecurity: false,
+    // Enable HSTS only when HTTPS is active
+    strictTransportSecurity: config.https
+      ? { maxAge: 31536000, includeSubDomains: false, preload: false }
+      : false,
     xContentTypeOptions: true,
     xDnsPrefetchControl: { allow: false },
     xDownloadOptions: true,
@@ -123,7 +131,7 @@ export async function buildApp (
       ],
       servers: [
         {
-          url: `http://${config.host}:${config.port}`,
+          url: `${config.https ? 'https' : 'http'}://${config.host}:${config.port}`,
           description: 'Local development server',
         },
       ],

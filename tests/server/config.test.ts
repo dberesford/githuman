@@ -13,6 +13,9 @@ describe('config', () => {
       assert.strictEqual(config.authToken, null)
       assert.strictEqual(config.repositoryPath, process.cwd())
       assert.strictEqual(config.dbPath, `${process.cwd()}/.githuman/reviews.db`)
+      assert.strictEqual(config.https, false)
+      assert.strictEqual(config.tlsCert, undefined)
+      assert.strictEqual(config.tlsKey, undefined)
     })
 
     it('should allow overriding port', () => {
@@ -47,6 +50,24 @@ describe('config', () => {
     it('should allow overriding db path', () => {
       const config = createConfig({ dbPath: '/custom/db.sqlite' })
       assert.strictEqual(config.dbPath, '/custom/db.sqlite')
+    })
+
+    it('should allow enabling https', () => {
+      const config = createConfig({ https: true })
+      assert.strictEqual(config.https, true)
+    })
+
+    it('should allow setting TLS certificate and key', () => {
+      const certContent = '-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----'
+      const keyContent = '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----'
+      const config = createConfig({
+        https: true,
+        tlsCert: certContent,
+        tlsKey: keyContent,
+      })
+      assert.strictEqual(config.https, true)
+      assert.strictEqual(config.tlsCert, certContent)
+      assert.strictEqual(config.tlsKey, keyContent)
     })
 
     describe('with GITHUMAN_TOKEN env var', () => {

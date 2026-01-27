@@ -74,7 +74,7 @@ export async function startServer (config: ServerConfig, options: StartServerOpt
       const protocol = config.https ? 'https' : 'http'
       for (const addr of addresses) {
         const url = config.authToken
-          ? `${protocol}://${addr}:${serverAddr.port}?token=${config.authToken}`
+          ? `${protocol}://${addr}:${serverAddr.port}?token=${encodeURIComponent(config.authToken)}`
           : `${protocol}://${addr}:${serverAddr.port}`
         app.log.info(`GitHuman running at: ${url}`)
       }
